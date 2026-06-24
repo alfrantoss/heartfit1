@@ -7,9 +7,15 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Detail Order #{{ $order->order_number }}</h5>
+            @if(auth()->user()->role === 'ahli_gizi')
+            <a href="{{ route('ahli_gizi.orders') }}" class="btn btn-secondary">
+                <i class="bx bx-arrow-back"></i> Kembali
+            </a>
+            @else
             <a href="{{ route('admin.orders.index') }}" class="btn btn-secondary">
                 <i class="bx bx-arrow-back"></i> Kembali
             </a>
+            @endif
         </div>
 
         <div class="card-body">

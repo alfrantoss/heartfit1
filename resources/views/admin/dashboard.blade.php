@@ -96,7 +96,7 @@
     </div>
 
     {{-- Summary bar --}}
-    @if($items->count() > 0)
+    @if($groupedDeliveries->count() > 0)
     <div class="card border-0 shadow-sm mb-4" style="border-radius:12px;">
         <div class="card-body py-3 d-flex flex-wrap align-items-center gap-3">
             <span class="fw-semibold small">
@@ -111,7 +111,7 @@
                 </span>
                 @endif
             @endforeach
-            <span class="ms-auto text-muted small">{{ $items->count() }} menu aktif</span>
+            <span class="ms-auto text-muted small">{{ $groupedDeliveries->count() }} menu aktif</span>
         </div>
     </div>
     @endif
@@ -128,16 +128,12 @@
     @endphp
 
     <div class="row g-3">
-    @forelse($items as $row)
+    @forelse($groupedDeliveries as $menuId => $deliveries)
     @php
-        $spec      = $row->menuMakanan->spec_menu ?? [];
+        $firstDelivery = $deliveries->first();
+        $spec      = $firstDelivery->menuMakanan->spec_menu ?? [];
         $menuSiang = $spec['Makan Siang'] ?? [];
         $menuMalam = $spec['Makan Malam'] ?? [];
-        $cfgS      = $statusCfg[$row->status_siang] ?? $statusCfg['pending'];
-        $cfgM      = $statusCfg[$row->status_malam] ?? $statusCfg['pending'];
-
-        // Orders aktif untuk paket ini
-        $ordersAktif = $activeOrdersByPackage[$row->meal_package_id] ?? collect();
     @endphp
 
     <div class="col-12">
@@ -151,166 +147,128 @@
             </div>
             <div class="flex-grow-1">
                 <div class="fw-bold" style="font-size:15px;">
-                    {{ $row->menuMakanan->nama_menu ?? ($row->mealPackage->nama_meal_package ?? 'Menu #'.$row->menu_makanan_id) }}
+                    {{ $firstDelivery->menuMakanan->nama_menu ?? 'Menu #'.$menuId }}
                 </div>
                 <div class="text-muted d-flex flex-wrap align-items-center gap-2" style="font-size:12px;">
-                    <span><i class="bx bx-box me-1"></i>{{ $row->mealPackage->nama_meal_package ?? 'Paket #'.$row->meal_package_id }}</span>
-                    <span class="badge bg-secondary" style="font-size:10px;">Batch {{ $row->batch }}</span>
-                    <span><i class="bx bx-calendar me-1"></i>{{ \Carbon\Carbon::parse($row->delivery_date)->locale('id')->isoFormat('D MMM Y') }}</span>
+                    <span class="badge bg-secondary" style="font-size:10px;">Batch {{ $firstDelivery->menuMakanan->batch ?? '-' }}</span>
+                    <span><i class="bx bx-calendar me-1"></i>{{ \Carbon\Carbon::parse($firstDelivery->delivery_date)->locale('id')->isoFormat('D MMM Y') }}</span>
                 </div>
             </div>
             <div class="d-flex align-items-center gap-3">
-                {{-- Badge jumlah penerima --}}
-                @if($ordersAktif->count() > 0)
                 <span class="badge" style="background:#e8f5e9;color:#28a745;border:1px solid #a5d6a7;font-size:11px;padding:5px 10px;border-radius:8px;">
-                    <i class="bx bx-user-check me-1"></i>{{ $ordersAktif->count() }} penerima
+                    <i class="bx bx-user-check me-1"></i>{{ $deliveries->count() }} penerima
                 </span>
-                @endif
-
-                @if($row->confirmed_by)
-                <div class="text-success d-flex align-items-center gap-1" style="font-size:12px;">
-                    <i class="bx bx-check-shield"></i>
-                    <span>{{ $row->confirmer?->name ?? '-' }} · {{ \Carbon\Carbon::parse($row->confirmed_at)->format('H:i') }}</span>
-                </div>
-                @else
-                <div class="text-warning d-flex align-items-center gap-1" style="font-size:12px;">
-                    <i class="bx bx-time"></i> Belum dikonfirmasi
-                </div>
-                @endif
             </div>
         </div>
 
         <div class="card-body">
-            <div class="row g-3">
-
-                {{-- ── Kolom 1: Daftar Order Penerima ── --}}
-                <div class="col-lg-5">
-                    <div class="fw-semibold small mb-2 d-flex align-items-center justify-content-between">
-                        <span><i class="bx bx-list-ul me-1 text-success"></i>DAFTAR PENERIMA AKTIF</span>
-                        @if($ordersAktif->count() > 0)
-                        <span class="badge bg-success" style="font-size:10px;">{{ $ordersAktif->count() }} order</span>
-                        @endif
+            {{-- Menu preview --}}
+            <div class="row g-2 mb-4">
+                <div class="col-md-6">
+                    <div class="bg-light rounded-2 p-2">
+                        <div class="fw-semibold text-success" style="font-size:11px;margin-bottom:4px;"><i class="bx bx-sun me-1"></i>MENU SIANG</div>
+                        @forelse(array_slice($menuSiang,0,4) as $m)
+                        <div style="font-size:11px;border-bottom:1px dashed #e0e0e0;padding:2px 0;">{{ $m }}</div>
+                        @empty <div class="text-muted" style="font-size:11px;">-</div>
+                        @endforelse
+                        @if(count($menuSiang) > 4)<div class="text-muted" style="font-size:10px;">+{{ count($menuSiang)-4 }} lainnya</div>@endif
                     </div>
-                    @if($ordersAktif->count() > 0)
-                    <div class="rounded-3 border" style="max-height:220px;overflow-y:auto;">
-                        @foreach($ordersAktif as $ord)
-                        <div class="order-row px-3 d-flex align-items-center gap-2">
-                            <div style="width:28px;height:28px;border-radius:7px;background:#e8f5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                <i class="bx bx-user text-success" style="font-size:13px;"></i>
-                            </div>
-                            <div class="flex-grow-1" style="min-width:0;">
-                                <div class="fw-semibold text-truncate" style="font-size:13px;">
-                                    {{ $ord->user?->name ?? '—' }}
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-light rounded-2 p-2">
+                        <div class="fw-semibold text-primary" style="font-size:11px;margin-bottom:4px;"><i class="bx bx-moon me-1"></i>MENU MALAM</div>
+                        @forelse(array_slice($menuMalam,0,4) as $m)
+                        <div style="font-size:11px;border-bottom:1px dashed #e0e0e0;padding:2px 0;">{{ $m }}</div>
+                        @empty <div class="text-muted" style="font-size:11px;">-</div>
+                        @endforelse
+                        @if(count($menuMalam) > 4)<div class="text-muted" style="font-size:10px;">+{{ count($menuMalam)-4 }} lainnya</div>@endif
+                    </div>
+                </div>
+            </div>
+
+            {{-- Daftar Penerima dengan Status --}}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" style="font-size:13px;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Pelanggan</th>
+                            <th>Status Siang</th>
+                            <th>Status Malam</th>
+                            <th>Konfirmasi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($deliveries as $delivery)
+                        @php
+                            $ord  = $delivery->order;
+                            $cfgS = $statusCfg[$delivery->status_siang] ?? $statusCfg['pending'];
+                            $cfgM = $statusCfg[$delivery->status_malam] ?? $statusCfg['pending'];
+                        @endphp
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">{{ $ord->user?->name ?? '—' }}</div>
+                                <div class="text-muted font-monospace" style="font-size:11px;">{{ $ord->order_number }}</div>
+                                <div class="text-muted" style="font-size:11px;">
+                                    <i class="bx bx-box me-1"></i>{{ $ord->package_label }}
                                 </div>
-                                <div class="text-muted d-flex flex-wrap gap-2" style="font-size:11px;">
-                                    <span class="font-monospace">{{ $ord->order_number }}</span>
-                                    @if($ord->whatsapp ?? $ord->user?->detail?->hp)
-                                    <span>
-                                        <i class="bx bxl-whatsapp" style="color:#25D366;"></i>
-                                        {{ $ord->whatsapp ?? $ord->user?->detail?->hp }}
-                                    </span>
-                                    @endif
+                                @if($ord->whatsapp ?? $ord->user?->detail?->hp)
+                                <div class="text-success mt-1" style="font-size:11px;">
+                                    <i class="bx bxl-whatsapp"></i> {{ $ord->whatsapp ?? $ord->user?->detail?->hp }}
                                 </div>
-                            </div>
-                            <a href="{{ route('admin.orders.show', $ord) }}"
-                               class="btn btn-sm" style="padding:2px 8px;font-size:11px;background:#f0f0f0;border-radius:6px;color:#495057;text-decoration:none;"
-                               title="Detail order">
-                                <i class="bx bx-link-external"></i>
-                            </a>
-                        </div>
+                                @endif
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill mb-1 d-block" style="background:{{ $cfgS['bg'] }};color:{{ $cfgS['color'] }};border:1px solid {{ $cfgS['color'] }};font-size:11px;">
+                                    {{ $cfgS['label'] }}
+                                </span>
+                                @if(in_array(auth()->user()->role, config('settings.delivery.update_status', [])))
+                                <form method="POST" action="{{ route('admin.deliveries.updateStatus', $delivery->id) }}" class="d-flex gap-1">
+                                    @csrf @method('PATCH')
+                                    <input type="hidden" name="field" value="status_siang">
+                                    <select name="value" class="form-select form-select-sm py-0 px-1" style="font-size:11px;min-width:100px;">
+                                        @foreach(['pending'=>'Pending','diterima'=>'Diterima','diproses'=>'Diproses','siap'=>'Siap','diambil'=>'Diambil'] as $val => $lbl)
+                                        <option value="{{ $val }}" {{ $delivery->status_siang===$val?'selected':'' }}>{{ $lbl }}</option>
+                                        @endforeach
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-primary p-1" title="Simpan"><i class="bx bx-check"></i></button>
+                                </form>
+                                @endif
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill mb-1 d-block" style="background:{{ $cfgM['bg'] }};color:{{ $cfgM['color'] }};border:1px solid {{ $cfgM['color'] }};font-size:11px;">
+                                    {{ $cfgM['label'] }}
+                                </span>
+                                @if(in_array(auth()->user()->role, config('settings.delivery.update_status', [])))
+                                <form method="POST" action="{{ route('admin.deliveries.updateStatus', $delivery->id) }}" class="d-flex gap-1">
+                                    @csrf @method('PATCH')
+                                    <input type="hidden" name="field" value="status_malam">
+                                    <select name="value" class="form-select form-select-sm py-0 px-1" style="font-size:11px;min-width:100px;">
+                                        @foreach(['pending'=>'Pending','diterima'=>'Diterima','diproses'=>'Diproses','siap'=>'Siap','diambil'=>'Diambil'] as $val => $lbl)
+                                        <option value="{{ $val }}" {{ $delivery->status_malam===$val?'selected':'' }}>{{ $lbl }}</option>
+                                        @endforeach
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-primary p-1" title="Simpan"><i class="bx bx-check"></i></button>
+                                </form>
+                                @endif
+                            </td>
+                            <td>
+                                @if($delivery->confirmed_by)
+                                <div class="text-success d-flex flex-column" style="font-size:11px;">
+                                    <span><i class="bx bx-check-shield"></i> {{ $delivery->confirmer?->name ?? '-' }}</span>
+                                    <span class="text-muted">{{ \Carbon\Carbon::parse($delivery->confirmed_at)->format('H:i') }}</span>
+                                </div>
+                                @else
+                                <div class="text-warning" style="font-size:11px;">
+                                    <i class="bx bx-time"></i> Belum
+                                </div>
+                                @endif
+                            </td>
+                        </tr>
                         @endforeach
-                    </div>
-                    @else
-                    <div class="text-center py-4 text-muted bg-light rounded-3" style="font-size:13px;">
-                        <i class="bx bx-info-circle me-1"></i>
-                        Tidak ada order aktif untuk paket ini hari ini
-                    </div>
-                    @endif
-
-                    {{-- Menu preview --}}
-                    <div class="row g-2 mt-2">
-                        <div class="col-6">
-                            <div class="bg-light rounded-2 p-2">
-                                <div class="fw-semibold text-success" style="font-size:11px;margin-bottom:4px;"><i class="bx bx-sun me-1"></i>MENU SIANG</div>
-                                @forelse(array_slice($menuSiang,0,4) as $m)
-                                <div style="font-size:11px;border-bottom:1px dashed #e0e0e0;padding:2px 0;">{{ $m }}</div>
-                                @empty <div class="text-muted" style="font-size:11px;">-</div>
-                                @endforelse
-                                @if(count($menuSiang) > 4)<div class="text-muted" style="font-size:10px;">+{{ count($menuSiang)-4 }} lainnya</div>@endif
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="bg-light rounded-2 p-2">
-                                <div class="fw-semibold text-primary" style="font-size:11px;margin-bottom:4px;"><i class="bx bx-moon me-1"></i>MENU MALAM</div>
-                                @forelse(array_slice($menuMalam,0,4) as $m)
-                                <div style="font-size:11px;border-bottom:1px dashed #e0e0e0;padding:2px 0;">{{ $m }}</div>
-                                @empty <div class="text-muted" style="font-size:11px;">-</div>
-                                @endforelse
-                                @if(count($menuMalam) > 4)<div class="text-muted" style="font-size:10px;">+{{ count($menuMalam)-4 }} lainnya</div>@endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- ── Kolom 2: Status Pesanan (Siang) ── --}}
-                <div class="col-lg-3 col-sm-6">
-                    <div class="fw-semibold small mb-2">
-                        <i class="bx bx-sun me-1" style="color:#ffc107;"></i>STATUS SIANG
-                    </div>
-                    <span class="badge mb-2 rounded-pill" style="background:{{ $cfgS['bg'] }};color:{{ $cfgS['color'] }};border:1px solid {{ $cfgS['color'] }};font-size:12px;padding:5px 12px;">
-                        {{ $cfgS['label'] }}
-                    </span>
-                    <div class="progress-track mb-3">
-                        <div class="progress-fill" style="width:{{ $cfgS['pct'] }}%;background:{{ $cfgS['color'] }};"></div>
-                    </div>
-                    @if(in_array(auth()->user()->role, config('settings.delivery.update_status', [])))
-                    <form method="POST" action="{{ route('admin.deliveries.updateStatus', $row->id) }}"
-                          class="d-flex gap-2 align-items-center">
-                        @csrf @method('PATCH')
-                        <input type="hidden" name="field" value="status_siang">
-                        <select name="value" class="form-select form-select-sm" style="border-radius:7px;">
-                            @foreach(['pending'=>'Pending','diterima'=>'Pesanan Diterima HeartFit','diproses'=>'Pesanan Diproses','siap'=>'Pesanan Siap Diambil','diambil'=>'Pesanan Diambil Pelanggan'] as $val => $lbl)
-                            <option value="{{ $val }}" {{ $row->status_siang===$val?'selected':'' }}>{{ $lbl }}</option>
-                            @endforeach
-                        </select>
-                        <button type="submit" class="btn btn-sm btn-primary" style="border-radius:7px;" title="Simpan & kirim notif WA">
-                            <i class="bx bx-check"></i>
-                        </button>
-                    </form>
-                    @endif
-                </div>
-
-                {{-- ── Kolom 3: Status Pesanan (Malam/Sesi 2) ── --}}
-                <div class="col-lg-4 col-sm-6">
-                    <div class="fw-semibold small mb-2">
-                        <i class="bx bx-moon me-1 text-primary"></i>STATUS MALAM
-                    </div>
-                    <span class="badge mb-2 rounded-pill" style="background:{{ $cfgM['bg'] }};color:{{ $cfgM['color'] }};border:1px solid {{ $cfgM['color'] }};font-size:12px;padding:5px 12px;">
-                        {{ $cfgM['label'] }}
-                    </span>
-                    <div class="progress-track mb-3">
-                        <div class="progress-fill" style="width:{{ $cfgM['pct'] }}%;background:{{ $cfgM['color'] }};"></div>
-                    </div>
-                    @if(in_array(auth()->user()->role, config('settings.delivery.update_status', [])))
-                    <form method="POST" action="{{ route('admin.deliveries.updateStatus', $row->id) }}"
-                          class="d-flex gap-2 align-items-center">
-                        @csrf @method('PATCH')
-                        <input type="hidden" name="field" value="status_malam">
-                        <select name="value" class="form-select form-select-sm" style="border-radius:7px;">
-                            @foreach(['pending'=>'Pending','diterima'=>'Pesanan Diterima HeartFit','diproses'=>'Pesanan Diproses','siap'=>'Pesanan Siap Diambil','diambil'=>'Pesanan Diambil Pelanggan'] as $val => $lbl)
-                            <option value="{{ $val }}" {{ $row->status_malam===$val?'selected':'' }}>{{ $lbl }}</option>
-                            @endforeach
-                        </select>
-                        <button type="submit" class="btn btn-sm btn-primary" style="border-radius:7px;" title="Simpan & kirim notif WA">
-                            <i class="bx bx-check"></i>
-                        </button>
-                    </form>
-                    @endif
-                </div>
-
+                    </tbody>
+                </table>
             </div>
         </div>
-
     </div>
     </div>
     @empty
@@ -364,38 +322,30 @@
                                 <i class="bx bx-info-circle me-1"></i>Tidak ada order aktif
                             </div>
                         @else
-                            @foreach($day['byBatch'] as $batch => $batchOrders)
-                            <div class="mb-3">
-                                <div class="d-flex align-items-center gap-2 mb-2">
-                                    <span class="badge bg-secondary" style="font-size:11px;">BATCH {{ $batch }}</span>
-                                    <span class="text-muted small">{{ $batchOrders->count() }} orang</span>
-                                </div>
-                                <div class="rounded-3 border" style="max-height:200px;overflow-y:auto;">
-                                    @foreach($batchOrders as $ord)
-                                    <div class="d-flex align-items-center gap-2 px-3 py-2"
-                                         style="border-bottom:1px solid #f0f0f0;">
-                                        <div style="width:26px;height:26px;border-radius:6px;background:#e8f5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                            <i class="bx bx-user text-success" style="font-size:12px;"></i>
-                                        </div>
-                                        <div class="flex-grow-1" style="min-width:0;">
-                                            <div class="fw-semibold text-truncate" style="font-size:12px;">
-                                                {{ $ord->user?->name ?? '—' }}
-                                            </div>
-                                            <div class="text-muted d-flex flex-wrap gap-2" style="font-size:10px;">
-                                                <span class="font-monospace">{{ $ord->order_number }}</span>
-                                                <span class="text-truncate">{{ $ord->package_label }}</span>
-                                            </div>
-                                        </div>
-                                        <a href="{{ route('admin.orders.show', $ord) }}"
-                                           class="btn btn-sm" style="padding:2px 6px;font-size:10px;background:#f0f0f0;border-radius:5px;color:#495057;"
-                                           title="Detail order">
-                                            <i class="bx bx-link-external"></i>
-                                        </a>
+                            <div class="rounded-3 border" style="max-height:260px;overflow-y:auto;">
+                                @foreach($day['orders'] as $ord)
+                                <div class="d-flex align-items-center gap-2 px-3 py-2"
+                                     style="border-bottom:1px solid #f0f0f0;">
+                                    <div style="width:26px;height:26px;border-radius:6px;background:#e8f5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                        <i class="bx bx-user text-success" style="font-size:12px;"></i>
                                     </div>
-                                    @endforeach
+                                    <div class="flex-grow-1" style="min-width:0;">
+                                        <div class="fw-semibold text-truncate" style="font-size:12px;">
+                                            {{ $ord->user?->name ?? '—' }}
+                                        </div>
+                                        <div class="text-muted d-flex flex-wrap gap-2" style="font-size:10px;">
+                                            <span class="font-monospace">{{ $ord->order_number }}</span>
+                                            <span class="text-truncate">{{ $ord->package_label }}</span>
+                                        </div>
+                                    </div>
+                                    <a href="{{ route('admin.orders.show', $ord) }}"
+                                       class="btn btn-sm" style="padding:2px 6px;font-size:10px;background:#f0f0f0;border-radius:5px;color:#495057;"
+                                       title="Detail order">
+                                        <i class="bx bx-link-external"></i>
+                                    </a>
                                 </div>
+                                @endforeach
                             </div>
-                            @endforeach
                         @endif
                     </div>
                 </div>

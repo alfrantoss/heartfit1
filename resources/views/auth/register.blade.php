@@ -207,7 +207,7 @@
                                 </div>
                             </div>
                             <div class="col-12">
-                                <label class="form-label fw-semibold">Alamat Pengiriman</label>
+                                <label class="form-label fw-semibold">Alamat </label>
                                 <div class="input-group input-group-merge">
                                     <span class="input-group-text"><i class="bx bx-home"></i></span>
                                     <textarea class="form-control" name="alamat" rows="2"

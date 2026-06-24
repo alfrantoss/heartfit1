@@ -127,22 +127,14 @@ class FonnteService
      */
     public function sendPickupStatusUpdate(\App\Models\OrderDeliveryStatus $delivery, string $field, string $newStatus): bool
     {
-        // Ambil semua order aktif pada tanggal delivery (tanpa filter package_key)
-        $deliveryDate = \Carbon\Carbon::parse($delivery->delivery_date)->toDateString();
-
-        $orders = \App\Models\Order::with(['user', 'user.detail'])
-            ->whereIn('status', ['PAID', 'SETTLEMENT'])
-            ->whereDate('start_date', '<=', $deliveryDate)
-            ->whereDate('end_date', '>=', $deliveryDate)
-            ->get();
-
-        if ($orders->isEmpty()) {
-            \Illuminate\Support\Facades\Log::info('[Fonnte] Tidak ada order aktif pada tanggal '.$deliveryDate);
+        $order = $delivery->order;
+        if (!$order) {
+            \Illuminate\Support\Facades\Log::info('[Fonnte] Order tidak ditemukan untuk delivery ID '.$delivery->id);
             return false;
         }
 
+        $deliveryDate = \Carbon\Carbon::parse($delivery->delivery_date)->toDateString();
         $menuNama  = $delivery->menuMakanan->nama_menu ?? 'Menu';
-        $paketNama = $delivery->mealPackage->nama_meal_package ?? 'Paket';
         $tanggal   = \Carbon\Carbon::parse($deliveryDate)->locale('id')->isoFormat('D MMMM Y');
         $sesi      = $field === 'status_siang' ? 'Siang' : 'Malam';
 
@@ -170,34 +162,27 @@ class FonnteService
             default => ['🔔', 'Status Pesanan Diperbarui', "Status pesanan Anda telah diperbarui."],
         };
 
-        $success = false;
-        foreach ($orders as $order) {
-            $phone = $order->whatsapp ?? $order->user?->detail?->hp;
-            if (!$phone) continue;
+        $phone = $order->whatsapp ?? $order->user?->detail?->hp;
+        if (!$phone) return false;
 
-            $nama    = $order->user?->name ?? 'Pelanggan';
-            $nomor   = $order->order_number;
-            $mulai   = $order->start_date ? $order->start_date->format('d/m/Y') : '-';
-            $selesai = $order->end_date   ? $order->end_date->format('d/m/Y')   : '-';
-            $total   = 'Rp ' . number_format($order->amount_total ?? $order->package_price, 0, ',', '.');
+        $nama    = $order->user?->name ?? 'Pelanggan';
+        $nomor   = $order->order_number;
+        $mulai   = $order->start_date ? $order->start_date->format('d/m/Y') : '-';
+        $selesai = $order->end_date   ? $order->end_date->format('d/m/Y')   : '-';
+        $total   = 'Rp ' . number_format($order->amount_total ?? $order->package_price, 0, ',', '.');
 
-            $message = "Halo *{$nama}*! 👋\n\n"
-                . "{$icon} *{$judul}*\n\n"
-                . "📋 *No. Order:* {$nomor}\n"
-                . "🥗 *Paket:* {$order->package_label}\n"
-                . "📅 *Periode:* {$mulai} s/d {$selesai}\n"
-                . "💰 *Total:* {$total}\n"
-                . "🍱 *Menu ({$sesi}):* {$menuNama}\n"
-                . "📆 *Tanggal:* {$tanggal}\n\n"
-                . "{$keterangan}\n\n"
-                . "_HeartFit Nutrition — Makan Sehat, Hidup Sehat_ 🌿";
+        $message = "Halo *{$nama}*! 👋\n\n"
+            . "{$icon} *{$judul}*\n\n"
+            . "📋 *No. Order:* {$nomor}\n"
+            . "🥗 *Paket:* {$order->package_label}\n"
+            . "📅 *Periode:* {$mulai} s/d {$selesai}\n"
+            . "💰 *Total:* {$total}\n"
+            . "🍱 *Menu ({$sesi}):* {$menuNama}\n"
+            . "📆 *Tanggal:* {$tanggal}\n\n"
+            . "{$keterangan}\n\n"
+            . "_HeartFit Nutrition — Makan Sehat, Hidup Sehat_ 🌿";
 
-            if ($this->send($phone, $message)) {
-                $success = true;
-            }
-        }
-
-        return $success;
+        return $this->send($phone, $message);
     }
 
     /**

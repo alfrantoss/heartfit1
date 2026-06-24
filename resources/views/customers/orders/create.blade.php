@@ -508,7 +508,7 @@
                             </div>
                         </div>
 
-                        {{-- CATATAN PESANAN --}}
+                        {{-- CATATAN PESANAN (hanya untuk paket Personal) --}}
                         <div class="card border-0 shadow-sm" id="notesCard">
                             <div class="card-body">
                                 <label for="orderNotes" class="form-label fw-semibold">
@@ -521,7 +521,6 @@
                                     rows="3" 
                                     placeholder="Tambahkan catatan khusus untuk pesanan Anda (contoh: preferensi makanan, alergi, tujuan diet, dll.)"
                                     maxlength="500"
-                                    required
                                 ></textarea>
                                 <div class="form-text">
                                     <small>Maksimal 500 karakter. Catatan akan dilihat oleh ahli gizi.</small>
@@ -529,7 +528,7 @@
                             </div>
                         </div>
 
-                        {{-- NOMOR WHATSAPP --}}
+                        {{-- NOMOR WHATSAPP (hanya untuk paket Personal) --}}
                         <div class="card border-0 shadow-sm mt-3" id="whatsappCard">
                             <div class="card-body">
                                 <label for="orderWhatsapp" class="form-label fw-semibold">
@@ -544,7 +543,6 @@
                                     maxlength="20"
                                     pattern="^62[0-9]{8,18}$"
                                     title="Nomor harus diawali 62, contoh: 6289745644634"
-                                    required
                                     oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                                 >
                                 <div class="form-text">
@@ -553,9 +551,9 @@
                             </div>
                         </div>
 
-                        <div class="alert alert-info mt-3 small mb-0">
+                        {{-- <div class="alert alert-info mt-3 small mb-0">
                             Jadwal pengantaran & preferensi menu dapat diatur setelah checkout.
-                        </div>
+                        </div> --}}
 
                         <div class="d-flex justify-content-between mt-4">
                             <button type="button" class="btn btn-outline-secondary" data-prev>Sebelumnya</button>
@@ -722,6 +720,24 @@ function updatePeriodInfo(){
   const perEl = document.getElementById('periodInfo');
   if (durEl) durEl.textContent = dur||'-';
   if (perEl) perEl.textContent = (startDate.value&&endDate.value)?`${startDate.value} s/d ${endDate.value}`:'-';
+}
+function isSelectedPackagePersonal(){
+  const id = getChosenKey();
+  return id && PACKAGES[id] ? !!PACKAGES[id].is_personal : false;
+}
+function updatePersonalFields(){
+  const isPersonal = isSelectedPackagePersonal();
+  const notesCard = document.getElementById('notesCard');
+  const waCard = document.getElementById('whatsappCard');
+  if(notesCard) notesCard.style.display = isPersonal ? '' : 'none';
+  if(waCard) waCard.style.display = isPersonal ? '' : 'none';
+  // Clear values jika bukan personal agar tidak terkirim
+  if(!isPersonal){
+    const notesEl = document.getElementById('orderNotes');
+    const waEl = document.getElementById('orderWhatsapp');
+    if(notesEl){ notesEl.value = ''; notesEl.classList.remove('is-invalid'); }
+    if(waEl){ waEl.value = ''; waEl.classList.remove('is-invalid'); }
+  }
 }
 
 // Isi badge durasi di Step 1
@@ -1121,6 +1137,7 @@ document.querySelectorAll('input[name="package_key"]').forEach(radio=>{
   radio.addEventListener('change',()=>{
     document.querySelectorAll('.selectable-card').forEach(c=>c.classList.remove('border-primary','shadow'));
     const card = radio.closest('label')?.querySelector('.selectable-card'); if(card) card.classList.add('border-primary','shadow');
+    updatePersonalFields();
     if(startDate.value){
       autoFillEndDate(); updatePeriodInfo();
       if(endDate.value) {
@@ -1149,14 +1166,18 @@ nextBtns.forEach(btn=>btn.addEventListener('click',()=>{
     if(invalid) return;
     startDate.classList.remove('is-invalid'); endDate.classList.remove('is-invalid');
     fillSummary();
+    updatePersonalFields();
     showStep(3);
   } else if(current===3){
     const notesEl = document.getElementById('orderNotes');
     const waEl = document.getElementById('orderWhatsapp');
+    const isPersonal = isSelectedPackagePersonal();
     let step3Invalid = false;
-    if (notesEl && !notesEl.value.trim()) { notesEl.classList.add('is-invalid'); step3Invalid = true; } else if (notesEl) { notesEl.classList.remove('is-invalid'); }
-    if (waEl && (!waEl.value.trim() || !/^62[0-9]{8,18}$/.test(waEl.value.trim()))) { waEl.classList.add('is-invalid'); step3Invalid = true; } else if (waEl) { waEl.classList.remove('is-invalid'); }
-    if (step3Invalid) { alert('Harap isi Catatan Khusus dan Nomor WhatsApp (harus diawali 62).'); return; }
+    if (isPersonal) {
+      if (notesEl && !notesEl.value.trim()) { notesEl.classList.add('is-invalid'); step3Invalid = true; } else if (notesEl) { notesEl.classList.remove('is-invalid'); }
+      if (waEl && (!waEl.value.trim() || !/^62[0-9]{8,18}$/.test(waEl.value.trim()))) { waEl.classList.add('is-invalid'); step3Invalid = true; } else if (waEl) { waEl.classList.remove('is-invalid'); }
+      if (step3Invalid) { alert('Harap isi Catatan Khusus dan Nomor WhatsApp (harus diawali 62).'); return; }
+    }
     showStep(4);
     const payChecked = document.querySelector('input[name="payment_method"]:checked');
     if (!payChecked) {
@@ -1175,6 +1196,7 @@ form.addEventListener('submit', e => {
 
 // ====== START ======
 showStep(1);
+updatePersonalFields();
 
 // Auto-select package jika ada preselectedPackage dari tombol pesan ulang
 if (PRESELECTED_PACKAGE) {

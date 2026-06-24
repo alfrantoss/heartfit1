@@ -7,9 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class OrderDeliveryStatus extends Model
 {
     protected $fillable = [
-        'meal_package_id',
+        'order_id',
         'menu_makanan_id',
-        'batch',
         'delivery_date',
         'status_siang',
         'status_malam',
@@ -25,10 +24,9 @@ class OrderDeliveryStatus extends Model
         'serve_days'    => 'array',
     ];
 
-    public function mealPackage()
+    public function order()
     {
-        // penting: spesifikkan FK karena nama model "MealPackages" (plural)
-        return $this->belongsTo(MealPackages::class, 'meal_package_id');
+        return $this->belongsTo(Order::class, 'order_id');
     }
 
     public function menuMakanan()

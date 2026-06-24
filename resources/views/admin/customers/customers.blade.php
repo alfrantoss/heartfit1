@@ -58,12 +58,8 @@
           <tr>
             <th>Nama</th>
             <th>Email</th>
-            <th>Created By</th>
-            <th>Updated By</th>
-            <th>Deleted By</th>
-            <th>Created At</th>
-            <th>Updated At</th>
-            <th>Deleted At</th>
+            <th>No HP</th>
+            <th>Terdaftar Pada</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -72,12 +68,8 @@
             <tr>
               <td>{{ $c['name'] }}</td>
               <td>{{ $c['email'] }}</td>
-              <td>{{ $c->createdBy->name ?? '-' }}</td>
-              <td>{{ $c->updatedBy->name ?? '-' }}</td>
-              <td>{{ $c->deletedBy->name ?? '-' }}</td>
-              <td>{{ $c['created_at'] }}</td>
-              <td>{{ $c['updated_at'] }}</td>
-              <td>{{ $c['deleted_at'] }}</td>
+              <td>{{ $c->detail->hp ?? '-' }}</td>
+              <td>{{ \Carbon\Carbon::parse($c['created_at'])->locale('id')->isoFormat('D MMM Y, HH:mm') }}</td>
               <td>
                 <div class="dropdown">
                   <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">

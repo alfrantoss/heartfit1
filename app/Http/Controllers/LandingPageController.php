@@ -12,9 +12,13 @@ class LandingPageController extends Controller
         if (Auth::check()) {
             $role = Auth::user()->role ?? 'customer';
 
-            return $role === 'admin'
-                ? redirect()->route('dashboard.admin')
-                : redirect()->route('dashboard.customer');
+            if (in_array($role, ['admin', 'superadmin', 'bendahara', 'medical_record', 'kurir'])) {
+                return redirect()->route('dashboard.admin');
+            } elseif ($role === 'ahli_gizi') {
+                return redirect()->route('ahli_gizi.orders');
+            }
+
+            return redirect()->route('dashboard.customer');
         }
 
         // belum login → tampilkan landing page

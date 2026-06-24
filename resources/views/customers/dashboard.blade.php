@@ -198,14 +198,14 @@
         $menuSiang = $spec['Makan Siang'] ?? [];
         $menuMalam = $spec['Makan Malam'] ?? [];
 
-        $steps    = ['PENDING','DIPROSES','DIKIRIM','SAMPAI'];
+        $steps    = ['PENDING','DITERIMA','DIPROSES','SIAP','DIAMBIL'];
         $mapStep  = fn($s) => match(Str::lower(trim($s ?? ''))) {
-            'pending'        => 1,
-            'diproses'       => 2,
-            'sedang dikirim' => 3,
-            'sampai'         => 4,
-            'gagal dikirim'  => 3,
-            default          => 1,
+            'pending'  => 1,
+            'diterima' => 2,
+            'diproses' => 3,
+            'siap'     => 4,
+            'diambil'  => 5,
+            default    => 1,
         };
         $stepSiang    = $mapStep($row->status_siang);
         $stepMalam    = $mapStep($row->status_malam);
@@ -371,7 +371,7 @@
                             <div class="fw-semibold">{{ \Carbon\Carbon::parse($histDate)->locale('id')->isoFormat('D MMM Y') }}</div>
                             <div class="text-muted" style="font-size:12px;">{{ \Carbon\Carbon::parse($histDate)->locale('id')->isoFormat('dddd') }}</div>
                         </td>
-                        <td>{{ $dRow->mealPackage->nama_meal_package ?? 'Paket #'.$dRow->meal_package_id }}</td>
+                        <td>{{ $dRow->order->package_label ?? 'Order #'.$dRow->order_id }}</td>
                         <td class="text-center">
                             @php $ss = $dRow->status_siang; @endphp
                             @if($ss === 'sampai')

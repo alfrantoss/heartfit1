@@ -26,15 +26,15 @@ class DashboardCustomerController extends Controller
             ->whereDate('end_date', '>=', $date)
             ->get();
 
-        // Delivery status hari ini — hanya untuk paket yg dimiliki customer
-        $mealPackageIds = $activeOrders->pluck('package_key')->filter()->unique()->values();
+        // Delivery status hari ini — berdasarkan order_id
+        $orderIds = $activeOrders->pluck('id')->filter()->unique()->values();
 
-        if ($mealPackageIds->isNotEmpty()) {
-            $items = OrderDeliveryStatus::with(['mealPackage', 'menuMakanan'])
+        if ($orderIds->isNotEmpty()) {
+            $items = OrderDeliveryStatus::with(['order', 'menuMakanan'])
                 ->whereDate('delivery_date', $date)
-                ->whereIn('meal_package_id', $mealPackageIds)
-                ->orderByRaw("FIELD(status_siang, 'pending','sedang dikirim','sampai','gagal dikirim')")
-                ->orderByRaw("FIELD(status_malam, 'pending','sedang dikirim','sampai','gagal dikirim')")
+                ->whereIn('order_id', $orderIds)
+                ->orderByRaw("FIELD(status_siang, 'pending','diterima','diproses','siap','diambil')")
+                ->orderByRaw("FIELD(status_malam, 'pending','diterima','diproses','siap','diambil')")
                 ->get();
         } else {
             $items = collect();
@@ -48,13 +48,11 @@ class DashboardCustomerController extends Controller
             ->get();
 
         // Riwayat penerimaan pesanan per hari (delivery history)
-        $deliveryHistory = OrderDeliveryStatus::with(['mealPackage'])
-            ->whereIn('meal_package_id', 
+        $deliveryHistory = OrderDeliveryStatus::with(['order', 'menuMakanan'])
+            ->whereIn('order_id', 
                 Order::where('user_id', $userId)
                     ->whereIn('status', ['PAID', 'SETTLEMENT'])
-                    ->pluck('package_key')
-                    ->filter()
-                    ->unique()
+                    ->pluck('id')
             )
             ->whereDate('delivery_date', '<=', $date)
             ->orderByDesc('delivery_date')

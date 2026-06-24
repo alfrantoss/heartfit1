@@ -19,21 +19,13 @@ class DashboardAdminController extends Controller
         $tz   = 'Asia/Jakarta';
         $date = $request->get('date', now($tz)->toDateString());
 
-        $items = OrderDeliveryStatus::with(['mealPackage', 'menuMakanan', 'confirmer'])
+        $items = OrderDeliveryStatus::with(['order.user', 'order.user.detail', 'menuMakanan', 'confirmer'])
             ->whereDate('delivery_date', $date)
             ->orderByRaw("FIELD(status_siang, 'pending','diterima','diproses','siap','diambil')")
             ->orderByRaw("FIELD(status_malam, 'pending','diterima','diproses','siap','diambil')")
             ->get();
 
-        $mealPackageIds = $items->pluck('meal_package_id')->filter()->unique()->values();
-
-        $activeOrdersByPackage = Order::with(['user:id,name', 'user.detail:user_id,hp'])
-            ->whereIn('status', ['PAID', 'SETTLEMENT'])
-            ->whereIn('package_key', $mealPackageIds)
-            ->whereDate('start_date', '<=', $date)
-            ->whereDate('end_date', '>=', $date)
-            ->get()
-            ->groupBy('package_key');
+        $groupedDeliveries = $items->groupBy('menu_makanan_id');
 
         $total = max(1, $items->count());
         $agg = [
@@ -54,7 +46,7 @@ class DashboardAdminController extends Controller
             'total' => $total
         ];
 
-        // ── Preview 3 hari ke depan: order aktif per batch ──
+        // ── Preview 3 hari ke depan: order aktif per user ──
         $upcomingDays = [];
         for ($i = 1; $i <= 3; $i++) {
             $futureDate = Carbon::parse($date, $tz)->addDays($i)->toDateString();
@@ -62,18 +54,15 @@ class DashboardAdminController extends Controller
                 ->whereIn('status', ['PAID', 'SETTLEMENT'])
                 ->whereDate('start_date', '<=', $futureDate)
                 ->whereDate('end_date', '>=', $futureDate)
-                ->orderBy('package_batch')
+                ->orderBy('package_label')
+                ->orderBy('user_id')
                 ->get();
-
-            $byBatch = $futureOrders->groupBy(function ($o) {
-                return $o->package_batch ?? 'I';
-            });
 
             $upcomingDays[] = [
                 'date'    => $futureDate,
                 'label'   => Carbon::parse($futureDate, $tz)->locale('id')->isoFormat('D MMMM Y'),
                 'total'   => $futureOrders->count(),
-                'byBatch' => $byBatch,
+                'orders'  => $futureOrders,
             ];
         }
 
@@ -93,7 +82,7 @@ class DashboardAdminController extends Controller
                                          ->sum('amount_total'),
         ];
 
-        return view('admin.dashboard', compact('items', 'date', 'agg', 'kpi', 'activeOrdersByPackage', 'upcomingDays'));
+        return view('admin.dashboard', compact('groupedDeliveries', 'date', 'agg', 'kpi', 'upcomingDays'));
     }
 
     public function updateStatus(Request $request, OrderDeliveryStatus $delivery)
@@ -123,7 +112,7 @@ class DashboardAdminController extends Controller
         // Kirim notifikasi WhatsApp ke customer jika status bukan 'pending'
         if ($newValue !== 'pending') {
             try {
-                $delivery->load(['mealPackage', 'menuMakanan']);
+                $delivery->load(['order.user', 'order.user.detail', 'menuMakanan']);
                 app(FonnteService::class)->sendPickupStatusUpdate($delivery, $field, $newValue);
             } catch (\Exception $e) {
                 Log::warning('[Fonnte] Gagal kirim notif status pickup', ['error' => $e->getMessage()]);

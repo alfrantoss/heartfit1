@@ -157,6 +157,7 @@ class OrderController extends Controller
                     'price'        => (int) round($p->price),
                     'durationDays' => (int) ($p->total_hari ?? 0),
                     'batch'        => $p->batch,
+                    'is_personal'  => (bool) optional($p->packageType)->is_personal,
                 ],
             ];
         })->toArray();
@@ -222,8 +223,8 @@ class OrderController extends Controller
             'unique_menu_count'  => ['nullable', 'integer', 'min:0'],
             
             // catatan khusus
-            'notes'              => ['required', 'string', 'max:500'],
-            'whatsapp'           => ['required', 'string', 'max:20', 'regex:/^62[0-9]{8,18}$/'],
+            'notes'              => ['nullable', 'string', 'max:500'],
+            'whatsapp'           => ['nullable', 'string', 'max:20', 'regex:/^62[0-9]{8,18}$/'],
         ]);
 
         // AMBIL DARI DB (bukan dari $this->packages)
@@ -321,8 +322,8 @@ class OrderController extends Controller
             'unique_menus'       => ['nullable'],
             'unique_menu_count'  => ['nullable', 'integer', 'min:0'],
             'meta'               => ['nullable'],
-            'notes'              => ['required', 'string', 'max:500'],
-            'whatsapp'           => ['required', 'string', 'max:20', 'regex:/^62[0-9]{8,18}$/'],
+            'notes'              => ['nullable', 'string', 'max:500'],
+            'whatsapp'           => ['nullable', 'string', 'max:20', 'regex:/^62[0-9]{8,18}$/'],
         ]);
 
         // --- normalisasi incoming JSON string → array ---
