@@ -2,22 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\UserDetail;
-use App\Http\Requests\StoreUserDetailRequest;
-use App\Http\Requests\UpdateUserDetailRequest;
 use App\Models\User;
+use App\Models\UserDetail;
 use App\Services\MRGeneratorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class UserDetailController extends Controller
 {
     public function index(Request $request)
     {
-        $q       = trim((string) $request->input('q'));
+        $q = trim((string) $request->input('q'));
         $perPage = (int) $request->input('per_page', 10);
 
         $details = DB::table('user_details')
@@ -46,46 +45,47 @@ class UserDetailController extends Controller
     public function create()
     {
         $users = User::select('id', 'name', 'email')->orderBy('name')->get();
+
         return view('admin.customers.details.create', compact('users'));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'nik'              => ['required', 'string', 'max:32', 'unique:user_details,nik'],
-            'alamat'           => ['required', 'string'],
-            'jenis_kelamin'    => ['required', 'in:L,P'],
-            'tempat_lahir'     => ['required', 'string', 'max:100'],
-            'tanggal_lahir'    => ['required', 'date'],
-            'bb_tb'            => ['nullable', 'string', 'max:20'],
-            'foto_ktp_base64'  => ['nullable', 'string'],       // jika dikirim base64 langsung dari FE
-            'foto_ktp'         => ['nullable', 'file', 'image', 'max:2048'], // jika upload file (2MB)
-            'hp'               => ['nullable', 'string', 'max:30'],
-            'usia'             => ['nullable', 'integer', 'min:0', 'max:150'],
+            'nik' => ['required', 'string', 'max:32', 'unique:user_details,nik'],
+            'alamat' => ['required', 'string'],
+            'jenis_kelamin' => ['required', 'in:L,P'],
+            'tempat_lahir' => ['required', 'string', 'max:100'],
+            'tanggal_lahir' => ['required', 'date'],
+            'bb_tb' => ['nullable', 'string', 'max:20'],
+            'foto_ktp_base64' => ['nullable', 'string'],       // jika dikirim base64 langsung dari FE
+            'foto_ktp' => ['nullable', 'file', 'image', 'max:2048'], // jika upload file (2MB)
+            'hp' => ['nullable', 'string', 'max:30'],
+            'usia' => ['nullable', 'integer', 'min:0', 'max:150'],
 
             // akun login
-            'name'             => ['required', 'string', 'max:255'],
-            'email'            => ['required', 'email', 'unique:users,email'],
-            'password'         => ['required', 'string', 'min:6', 'confirmed'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', Rule::unique('users')->whereNull('deleted_at')],
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
         ]);
 
         $generatedMr = null;
         DB::transaction(function () use ($data, $request, &$generatedMr) {
             // 1) buat akun
             $user = User::create([
-                'name'       => $data['name'],
-                'email'      => $data['email'],
-                'role'       => 'customer',
-                'password'   => Hash::make($data['password']),
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'role' => 'customer',
+                'password' => Hash::make($data['password']),
                 'created_by' => Auth::id(),
             ]);
 
             // 2) siapkan data detail
             $detailData = collect($data)->except(['name', 'email', 'password', 'password_confirmation', 'foto_ktp', 'foto_ktp_base64'])->toArray();
-            $detailData['user_id']    = $user->id;
-            $detailData['mr']         = MRGeneratorService::generateUnique(); // Auto-generate MR
+            $detailData['user_id'] = $user->id;
+            $detailData['mr'] = MRGeneratorService::generateUnique(); // Auto-generate MR
             $detailData['created_by'] = Auth::id();
-            
+
             $generatedMr = $detailData['mr'];
 
             // 3) isi foto_ktp_base64 dari file atau dari field base64
@@ -94,14 +94,14 @@ class UserDetailController extends Controller
             // a) jika user upload file
             if ($request->hasFile('foto_ktp') && $request->file('foto_ktp')->isValid()) {
                 $mime = $request->file('foto_ktp')->getMimeType(); // e.g. image/png
-                $bin  = file_get_contents($request->file('foto_ktp')->getRealPath());
-                $fotoBase64 = 'data:' . $mime . ';base64,' . base64_encode($bin);
+                $bin = file_get_contents($request->file('foto_ktp')->getRealPath());
+                $fotoBase64 = 'data:'.$mime.';base64,'.base64_encode($bin);
             }
             // b) jika FE kirim base64 langsung
-            elseif (!empty($data['foto_ktp_base64'])) {
+            elseif (! empty($data['foto_ktp_base64'])) {
                 // opsional: normalisasi, pastikan ada prefix data:...;base64,
                 $raw = $data['foto_ktp_base64'];
-                $fotoBase64 = Str::startsWith($raw, 'data:') ? $raw : ('data:image/png;base64,' . $raw);
+                $fotoBase64 = Str::startsWith($raw, 'data:') ? $raw : ('data:image/png;base64,'.$raw);
             }
 
             $detailData['foto_ktp_base64'] = $fotoBase64;
@@ -114,7 +114,6 @@ class UserDetailController extends Controller
             ->with('status', "Detail + akun user berhasil dibuat dengan MR: {$generatedMr}");
     }
 
-
     public function show(UserDetail $user_detail)
     {
         // ambil relasi user
@@ -122,7 +121,7 @@ class UserDetailController extends Controller
 
         // decrypt foto ktp (kalau pakai manual Crypt::encryptString)
         $fotoKtp = null;
-        if (!empty($user_detail->foto_ktp_base64)) {
+        if (! empty($user_detail->foto_ktp_base64)) {
             try {
                 // kalau pakai cast 'encrypted', ini sudah otomatis plaintext base64
                 $fotoKtp = $user_detail->foto_ktp_base64;
@@ -135,10 +134,11 @@ class UserDetailController extends Controller
         }
 
         return view('admin.customers.customer-detail', [
-            'detail'   => $user_detail,
-            'fotoKtp'  => $fotoKtp,
+            'detail' => $user_detail,
+            'fotoKtp' => $fotoKtp,
         ]);
     }
+
     public function showAkun(UserDetail $user_detail)
     {
         // ambil relasi user
@@ -146,7 +146,7 @@ class UserDetailController extends Controller
 
         // decrypt foto ktp (kalau pakai manual Crypt::encryptString)
         $fotoKtp = null;
-        if (!empty($user_detail->foto_ktp_base64)) {
+        if (! empty($user_detail->foto_ktp_base64)) {
             try {
                 // kalau pakai cast 'encrypted', ini sudah otomatis plaintext base64
                 $fotoKtp = $user_detail->foto_ktp_base64;
@@ -159,8 +159,8 @@ class UserDetailController extends Controller
         }
 
         return view('customers.akun.akun', [
-            'detail'   => $user_detail,
-            'fotoKtp'  => $fotoKtp,
+            'detail' => $user_detail,
+            'fotoKtp' => $fotoKtp,
         ]);
     }
 
@@ -170,7 +170,7 @@ class UserDetailController extends Controller
 
         // siapkan base64 untuk preview
         $fotoKtp = null;
-        if (!empty($user_detail->foto_ktp_base64)) {
+        if (! empty($user_detail->foto_ktp_base64)) {
             try {
                 $fotoKtp = $user_detail->foto_ktp_base64; // kalau tidak dienkripsi manual
                 // jika dulunya disimpan pakai Crypt::encryptString(), pakai:
@@ -181,46 +181,45 @@ class UserDetailController extends Controller
         }
 
         return view('admin.customers.details.edit', [
-            'detail'  => $user_detail,
-            'users'   => $users,
+            'detail' => $user_detail,
+            'users' => $users,
             'fotoKtp' => $fotoKtp, // <<— penting untuk preview
         ]);
     }
-
 
     public function update(Request $request, UserDetail $user_detail)
     {
         // samakan rules dengan store:
         $data = $request->validate([
-            'mr'               => ['required', 'string', 'max:50', 'unique:user_details,mr,' . $user_detail->id],
-            'nik'              => ['required', 'string', 'max:32', 'unique:user_details,nik,' . $user_detail->id],
-            'alamat'           => ['required', 'string'],
-            'jenis_kelamin'    => ['required', 'in:L,P'],
-            'tempat_lahir'     => ['required', 'string', 'max:100'],
-            'tanggal_lahir'    => ['required', 'date'],
-            'bb_tb'            => ['nullable', 'string', 'max:20'],
-            'foto_ktp_base64'  => ['nullable', 'string'],                 // sama seperti store
-            'foto_ktp'         => ['nullable', 'file', 'image', 'max:2048'], // 2MB (sama dengan store)
-            'hp'               => ['nullable', 'string', 'max:30'],
-            'usia'             => ['nullable', 'integer', 'min:0', 'max:150'],
+            'mr' => ['required', 'string', 'max:50', 'unique:user_details,mr,'.$user_detail->id],
+            'nik' => ['required', 'string', 'max:32', 'unique:user_details,nik,'.$user_detail->id],
+            'alamat' => ['required', 'string'],
+            'jenis_kelamin' => ['required', 'in:L,P'],
+            'tempat_lahir' => ['required', 'string', 'max:100'],
+            'tanggal_lahir' => ['required', 'date'],
+            'bb_tb' => ['nullable', 'string', 'max:20'],
+            'foto_ktp_base64' => ['nullable', 'string'],                 // sama seperti store
+            'foto_ktp' => ['nullable', 'file', 'image', 'max:2048'], // 2MB (sama dengan store)
+            'hp' => ['nullable', 'string', 'max:30'],
+            'usia' => ['nullable', 'integer', 'min:0', 'max:150'],
 
             // akun login (samakan dengan store, tapi unique email diabaikan untuk user saat ini)
-            'name'             => ['required', 'string', 'max:255'],
-            'email'            => ['required', 'email', 'unique:users,email,' . $user_detail->user_id],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'unique:users,email,'.$user_detail->user_id],
         ]);
 
         DB::transaction(function () use ($data, $request, $user_detail) {
             // 1) update akun user (name & email)
             $user = $user_detail->user; // pastikan relasi ada: UserDetail belongsTo User
             $user->update([
-                'name'       => $data['name'],
-                'email'      => $data['email'],
-                'updated_by' => \Illuminate\Support\Facades\Auth::id(),
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'updated_by' => Auth::id(),
             ]);
 
             // 2) siapkan payload untuk user_details
             $payload = collect($data)->except(['name', 'email', 'foto_ktp'])->toArray();
-            $payload['updated_by'] = \Illuminate\Support\Facades\Auth::id();
+            $payload['updated_by'] = Auth::id();
 
             // 3) tentukan foto_ktp_base64 (file / base64 / biarkan lama)
             $newBase64 = null;
@@ -228,19 +227,19 @@ class UserDetailController extends Controller
             // a) jika upload file
             if ($request->hasFile('foto_ktp') && $request->file('foto_ktp')->isValid()) {
                 $mime = $request->file('foto_ktp')->getMimeType(); // image/png atau image/jpeg
-                $bin  = file_get_contents($request->file('foto_ktp')->getRealPath());
-                $newBase64 = 'data:' . $mime . ';base64,' . base64_encode($bin);
+                $bin = file_get_contents($request->file('foto_ktp')->getRealPath());
+                $newBase64 = 'data:'.$mime.';base64,'.base64_encode($bin);
             }
             // b) jika FE kirim base64 langsung
-            elseif (!empty($data['foto_ktp_base64'])) {
+            elseif (! empty($data['foto_ktp_base64'])) {
                 $raw = $data['foto_ktp_base64'];
-                $newBase64 = \Illuminate\Support\Str::startsWith($raw, 'data:')
+                $newBase64 = Str::startsWith($raw, 'data:')
                     ? $raw
-                    : ('data:image/png;base64,' . $raw);
+                    : ('data:image/png;base64,'.$raw);
             }
 
             // hanya set kalau ada yang baru; kalau tidak ada, jangan timpa yg lama
-            if (!is_null($newBase64)) {
+            if (! is_null($newBase64)) {
                 $payload['foto_ktp_base64'] = $newBase64;
             } else {
                 unset($payload['foto_ktp_base64']);
@@ -257,35 +256,35 @@ class UserDetailController extends Controller
     {
         // samakan rules dengan store:
         $data = $request->validate([
-            'mr'               => ['required', 'string', 'max:50', 'unique:user_details,mr,' . $user_detail->id],
-            'nik'              => ['required', 'string', 'max:32', 'unique:user_details,nik,' . $user_detail->id],
-            'alamat'           => ['required', 'string'],
-            'jenis_kelamin'    => ['required', 'in:L,P'],
-            'tempat_lahir'     => ['required', 'string', 'max:100'],
-            'tanggal_lahir'    => ['required', 'date'],
-            'bb_tb'            => ['nullable', 'string', 'max:20'],
-            'foto_ktp_base64'  => ['nullable', 'string'],                 // sama seperti store
-            'foto_ktp'         => ['nullable', 'file', 'image', 'max:2048'], // 2MB (sama dengan store)
-            'hp'               => ['nullable', 'string', 'max:30'],
-            'usia'             => ['nullable', 'integer', 'min:0', 'max:150'],
+            'mr' => ['required', 'string', 'max:50', 'unique:user_details,mr,'.$user_detail->id],
+            'nik' => ['required', 'string', 'max:32', 'unique:user_details,nik,'.$user_detail->id],
+            'alamat' => ['required', 'string'],
+            'jenis_kelamin' => ['required', 'in:L,P'],
+            'tempat_lahir' => ['required', 'string', 'max:100'],
+            'tanggal_lahir' => ['required', 'date'],
+            'bb_tb' => ['nullable', 'string', 'max:20'],
+            'foto_ktp_base64' => ['nullable', 'string'],                 // sama seperti store
+            'foto_ktp' => ['nullable', 'file', 'image', 'max:2048'], // 2MB (sama dengan store)
+            'hp' => ['nullable', 'string', 'max:30'],
+            'usia' => ['nullable', 'integer', 'min:0', 'max:150'],
 
             // akun login (samakan dengan store, tapi unique email diabaikan untuk user saat ini)
-            'name'             => ['required', 'string', 'max:255'],
-            'email'            => ['required', 'email', 'unique:users,email,' . $user_detail->user_id],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'unique:users,email,'.$user_detail->user_id],
         ]);
 
         DB::transaction(function () use ($data, $request, $user_detail) {
             // 1) update akun user (name & email)
             $user = $user_detail->user; // pastikan relasi ada: UserDetail belongsTo User
             $user->update([
-                'name'       => $data['name'],
-                'email'      => $data['email'],
-                'updated_by' => \Illuminate\Support\Facades\Auth::id(),
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'updated_by' => Auth::id(),
             ]);
 
             // 2) siapkan payload untuk user_details
             $payload = collect($data)->except(['name', 'email', 'foto_ktp'])->toArray();
-            $payload['updated_by'] = \Illuminate\Support\Facades\Auth::id();
+            $payload['updated_by'] = Auth::id();
 
             // 3) tentukan foto_ktp_base64 (file / base64 / biarkan lama)
             $newBase64 = null;
@@ -293,19 +292,19 @@ class UserDetailController extends Controller
             // a) jika upload file
             if ($request->hasFile('foto_ktp') && $request->file('foto_ktp')->isValid()) {
                 $mime = $request->file('foto_ktp')->getMimeType(); // image/png atau image/jpeg
-                $bin  = file_get_contents($request->file('foto_ktp')->getRealPath());
-                $newBase64 = 'data:' . $mime . ';base64,' . base64_encode($bin);
+                $bin = file_get_contents($request->file('foto_ktp')->getRealPath());
+                $newBase64 = 'data:'.$mime.';base64,'.base64_encode($bin);
             }
             // b) jika FE kirim base64 langsung
-            elseif (!empty($data['foto_ktp_base64'])) {
+            elseif (! empty($data['foto_ktp_base64'])) {
                 $raw = $data['foto_ktp_base64'];
-                $newBase64 = \Illuminate\Support\Str::startsWith($raw, 'data:')
+                $newBase64 = Str::startsWith($raw, 'data:')
                     ? $raw
-                    : ('data:image/png;base64,' . $raw);
+                    : ('data:image/png;base64,'.$raw);
             }
 
             // hanya set kalau ada yang baru; kalau tidak ada, jangan timpa yg lama
-            if (!is_null($newBase64)) {
+            if (! is_null($newBase64)) {
                 $payload['foto_ktp_base64'] = $newBase64;
             } else {
                 unset($payload['foto_ktp_base64']);
@@ -318,11 +317,10 @@ class UserDetailController extends Controller
         return redirect()->route('dashboard.customer')->with('status', 'Detail user berhasil diperbarui.');
     }
 
-
-
     public function destroy(UserDetail $user_detail)
     {
         $user_detail->delete();
+
         return back()->with('status', 'Detail user dihapus.');
     }
 }

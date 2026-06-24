@@ -38,10 +38,16 @@ class LoginController extends Controller
 
         // Arahkan ke dashboard sesuai role
         $role = Auth::user()->role ?? 'customer';
-        $adminRoles = ['admin', 'superadmin', 'ahli_gizi', 'bendahara', 'medical_record', 'kurir'];
-        return in_array($role, $adminRoles)
-            ? redirect()->route('dashboard.admin')->with('status', 'Selamat datang!')
-            : redirect()->route('dashboard.customer')->with('status', 'Selamat datang!');
+
+        return match($role) {
+            'ahli_gizi'      => redirect()->route('ahli_gizi.orders')->with('status', 'Selamat datang!'),
+            'admin',
+            'superadmin',
+            'bendahara',
+            'medical_record',
+            'kurir'          => redirect()->route('dashboard.admin')->with('status', 'Selamat datang!'),
+            default          => redirect()->route('dashboard.customer')->with('status', 'Selamat datang!'),
+        };
     }
 
     public function logout(Request $request)

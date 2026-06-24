@@ -35,6 +35,36 @@
   {{-- Tambahkan baris ini --}}
   @stack('styles')
 
+  {{-- HeartFit custom tweaks — TIDAK mengubah warna utama Sneat (biru) --}}
+  <style>
+    /* Brand area padding */
+    .app-brand { padding: 16px 20px !important; }
+
+    /* Card sedikit lebih rounded */
+    .card { border-radius: 12px !important; }
+    .card-header { border-radius: 12px 12px 0 0 !important; }
+
+    /* Sidebar badge */
+    .menu-inner .badge { font-size: 10px; padding: 2px 6px; }
+
+    /* Page fade-in */
+    .content-wrapper { animation: pageFadeIn .3s ease both; }
+    @keyframes pageFadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* KPI card hover */
+    .card:hover { transition: transform .2s, box-shadow .2s; }
+
+    /* Alert entry animation */
+    .alert { animation: alertIn .3s ease both; }
+    @keyframes alertIn {
+      from { opacity:0; transform: translateY(-6px); }
+      to   { opacity:1; transform: none; }
+    }
+  </style>
+
   {{-- Helpers & Config (harus di head, setelah core styles) --}}
   <script src="{{ asset('assets/vendor/js/helpers.js') }}"></script>
   <script src="{{ asset('assets/js/config.js') }}"></script>
@@ -74,5 +104,25 @@
 
   <script async defer src="https://buttons.github.io/buttons.js"></script>
   @stack('scripts')
+
+  {{-- Notification JS (untuk customer) --}}
+  @auth
+  @if(auth()->user()->role === 'customer')
+  <script>
+  function markRead(id) {
+      fetch(`/notifications/${id}/read`, {
+          method: 'POST',
+          headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Content-Type': 'application/json' }
+      }).catch(() => {});
+  }
+  function markAllRead() {
+      fetch('/notifications/read-all', {
+          method: 'POST',
+          headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
+      }).then(() => window.location.reload()).catch(() => {});
+  }
+  </script>
+  @endif
+  @endauth
 </body>
 </html>

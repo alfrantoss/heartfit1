@@ -37,7 +37,7 @@
           </div>
           <button class="btn btn-primary" type="submit">Search</button>
           @if (request('q'))
-            <a href="{{ route('admin.package-types.index', ['per_page' => request('per_page', $perPage)]) }}"
+            <a href="{{ route('admin.packageType', ['per_page' => request('per_page', $perPage)]) }}"
                class="btn btn-outline-secondary">Reset</a>
           @endif
         </form>
@@ -55,6 +55,7 @@
           <tr>
             <th>ID</th>
             <th>Package Type</th>
+            <th>Ahli Gizi</th>
             <th>Created At</th>
             <th>Updated At</th>
             <th style="width: 80px;">Actions</th>
@@ -65,6 +66,15 @@
             <tr>
               <td>{{ $t->id }}</td>
               <td>{{ $t->packageType }}</td>
+              <td>
+                @if($t->is_personal)
+                  <span class="badge bg-primary">
+                    <i class="bx bx-user-check me-1"></i>Ya — Ahli Gizi
+                  </span>
+                @else
+                  <span class="badge bg-label-secondary">Tidak</span>
+                @endif
+              </td>
               <td>{{ $t->created_at }}</td>
               <td>{{ $t->updated_at }}</td>
               <td>
@@ -79,12 +89,9 @@
 
                     {{-- DELETE --}}
                     <form action="{{ route('admin.packageType.destroy', $t->id) }}" method="POST"
-                          onsubmit="return confirm('Yakin hapus {{ $t->package_type }}?');">
-                    <form action="" method="POST"
-                          onsubmit="return confirm('Yakin hapus {{ $t->package_type }}?');">
+                          onsubmit="return confirm('Yakin hapus paket tipe \'{{ $t->packageType }}\'?');">
                       @csrf
                       @method('DELETE')
-                      {{-- pertahankan query agar kembali ke kondisi saat ini --}}
                       <input type="hidden" name="q" value="{{ request('q') }}">
                       <input type="hidden" name="per_page" value="{{ request('per_page', $perPage) }}">
                       <input type="hidden" name="page" value="{{ request('page') }}">

@@ -5,309 +5,326 @@
     <title>Struk Order - {{ $order->order_number }}</title>
     <style>
         @page {
-            margin: 2px;
-            size: 80mm 100mm; /* Lebih pendek */
+            margin: 2mm;
+            size: 80mm auto;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
         
         body {
             font-family: 'Courier New', Courier, monospace;
-            font-size: 8px;
-            line-height: 1.0;
+            font-size: 9px;
+            line-height: 1.3;
             color: #000;
-            margin: 0;
-            padding: 0;
-            background: white;
+            background: #fff;
+            padding: 3mm;
         }
         
         .receipt {
             width: 100%;
-            max-width: 220px;
+            max-width: 72mm;
             margin: 0 auto;
-            padding: 5px;
-            border: 1px solid #000;
-            background: white;
-            box-sizing: border-box;
         }
         
         .header {
             text-align: center;
-            margin-bottom: 5px;
-            padding-bottom: 3px;
-            border-bottom: 1px solid #000;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+            border-bottom: 2px dashed #000;
         }
         
-        .header h1 {
-            margin: 0;
-            font-size: 12px;
+        .header .brand {
+            font-size: 13px;
             font-weight: bold;
-            color: #000;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 2px;
         }
         
-        .header p {
-            margin: 1px 0;
-            font-size: 7px;
-            color: #666;
+        .header .subtitle {
+            font-size: 8px;
+            letter-spacing: 1px;
         }
         
         .section {
-            margin-bottom: 5px;
+            margin-bottom: 6px;
         }
         
         .info-row {
             display: flex;
             justify-content: space-between;
-            margin: 2px 0;
-            font-size: 8px;
+            align-items: baseline;
+            padding: 1.5px 0;
+            font-size: 9px;
         }
         
         .info-label {
             font-weight: bold;
-            color: #000;
+            white-space: nowrap;
         }
         
         .info-value {
             text-align: right;
-            font-weight: normal;
+            word-break: break-word;
+            max-width: 60%;
         }
         
-        .package-info {
-            background: #f5f5f5;
-            padding: 4px;
-            border: 1px solid #ddd;
+        .divider {
+            border-top: 1px dashed #000;
             margin: 5px 0;
+        }
+        
+        .divider-double {
+            border-top: 2px solid #000;
+            margin: 6px 0;
+        }
+        
+        .package-box {
+            padding: 4px 0;
             text-align: center;
         }
         
         .package-name {
             font-size: 10px;
             font-weight: bold;
+            text-transform: uppercase;
             margin-bottom: 3px;
-            color: #000;
+        }
+        
+        .package-meta {
+            font-size: 8px;
         }
         
         .menu-list {
-            background: #f9f9f9;
-            padding: 4px;
-            border: 1px solid #ddd;
-            margin: 5px 0;
+            padding: 3px 0;
         }
         
         .menu-item {
-            padding: 1px 0;
+            padding: 1.5px 0;
             font-size: 8px;
             border-bottom: 1px dotted #ccc;
+            display: flex;
+            justify-content: space-between;
         }
         
         .menu-item:last-child {
             border-bottom: none;
         }
         
-        .dates-info {
-            background: #f5f5f5;
-            padding: 4px;
-            border: 1px solid #ddd;
-            margin: 5px 0;
+        .menu-more {
+            text-align: center;
+            font-size: 8px;
+            padding: 2px 0;
         }
         
-        .dates-list {
-            font-size: 7px;
+        .dates-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3px;
+            font-size: 8px;
         }
         
-        .date-item {
-            padding: 1px 0;
-            border-bottom: 1px dotted #ccc;
-        }
-        
-        .date-item:last-child {
-            border-bottom: none;
+        .date-range {
+            font-size: 8px;
         }
         
         .notes-box {
-            background: #fffacd;
-            padding: 4px;
-            border: 1px solid #ddd;
-            margin: 5px 0;
-            font-size: 7px;
+            border: 1px solid #000;
+            padding: 3px 4px;
+            font-size: 8px;
             font-style: italic;
+            background: #fafafa;
         }
         
         .total-box {
-            background: #000;
-            color: white;
-            padding: 6px;
-            margin: 8px 0;
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
+            padding: 5px 0;
+            margin: 6px 0;
             text-align: center;
         }
         
         .total-label {
             font-size: 8px;
             font-weight: bold;
-            margin-bottom: 2px;
             text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
         }
         
         .total-amount {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: bold;
         }
         
         .status-badge {
             display: inline-block;
-            padding: 1px 3px;
-            border-radius: 2px;
-            font-size: 7px;
+            padding: 2px 6px;
+            border: 1px solid #000;
+            font-size: 8px;
             font-weight: bold;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
-        .status-pending { background: #fff3cd; color: #856404; }
-        .status-unpaid { background: #f8d7da; color: #721c24; }
-        .status-paid { background: #d4edda; color: #155724; }
-        .status-processing { background: #cce5ff; color: #004085; }
-        .status-completed { background: #d1ecf1; color: #0c5460; }
-        .status-expired { background: #f8d7da; color: #721c24; }
-        .status-canceled { background: #e2e3e5; color: #383d41; }
+        .status-pending { background: #fff; }
+        .status-unpaid { background: #fff; }
+        .status-paid { background: #000; color: #fff; }
+        .status-processing { background: #e0e0e0; }
+        .status-completed { background: #000; color: #fff; }
+        .status-expired { background: #fff; }
+        .status-canceled { background: #fff; }
+        
+        .payment-info {
+            font-size: 8px;
+            text-align: center;
+            margin-top: 4px;
+        }
         
         .footer {
             text-align: center;
             margin-top: 8px;
-            padding-top: 3px;
-            border-top: 1px solid #ddd;
-            font-size: 7px;
-            color: #666;
+            padding-top: 4px;
+            border-top: 1px dashed #000;
+            font-size: 8px;
         }
         
-        .divider {
-            height: 1px;
-            background: #ddd;
-            margin: 3px 0;
+        .footer .thanks {
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 3px;
+        }
+        
+        .qr-area {
+            text-align: center;
+            margin: 6px 0;
+            font-size: 8px;
         }
     </style>
 </head>
 <body>
     <div class="receipt">
-        <!-- Header -->
         <div class="header">
-            <h1>HEARTFIT</h1>
-            <p>STRUK PEMESANAN</p>
+            <div class="brand">HEARTFIT</div>
+            <div class="subtitle">STRUK PEMESANAN</div>
         </div>
         
-        <!-- Order Info -->
         <div class="section">
             <div class="info-row">
-                <span class="info-label">No:</span>
+                <span class="info-label">NO. ORDER</span>
                 <span class="info-value">{{ $order->order_number }}</span>
             </div>
             <div class="info-row">
-                <span class="info-label">Tgl:</span>
+                <span class="info-label">TANGGAL</span>
                 <span class="info-value">{{ \Carbon\Carbon::parse($order->created_at)->format('d/m/Y H:i') }}</span>
             </div>
             <div class="info-row">
-                <span class="info-label">Status:</span>
+                <span class="info-label">STATUS</span>
                 <span class="info-value">
                     <span class="status-badge status-{{ strtolower($order->status) }}">
-                        {{ $order->status }}
+                        {{ strtoupper($order->status) }}
                     </span>
                 </span>
             </div>
             <div class="info-row">
-                <span class="info-label">Customer:</span>
-                <span class="info-value">{{ $order->user->name ?? '-' }}</span>
+                <span class="info-label">CUSTOMER</span>
+                <span class="info-value">{{ strtoupper($order->user->name ?? '-') }}</span>
             </div>
         </div>
         
-        <!-- Package Info -->
-        <div class="section">
-            <div class="package-info">
-                <div class="package-name">{{ $order->package_label ?? '-' }}</div>
-                <div class="info-row">
-                    <span>{{ ucfirst($order->package_category ?? '-') }}</span>
-                    <span>{{ $order->days ?? 0 }} hari</span>
-                </div>
-                <div class="info-row">
-                    <span>Rp {{ number_format($order->package_price ?? 0, 0, ',', '.') }}</span>
-                    @if($order->package_batch)
-                    <span>Batch {{ $order->package_batch }}</span>
-                    @endif
-                </div>
+        <div class="divider"></div>
+        
+        <div class="section package-box">
+            <div class="package-name">{{ strtoupper($order->package_label ?? '-') }}</div>
+            <div class="package-meta">
+                {{ ucfirst($order->package_category ?? '-') }} &nbsp;|&nbsp; {{ $order->days ?? 0 }} HARI
             </div>
+            @if($order->package_batch)
+            <div class="package-meta">BATCH {{ $order->package_batch }}</div>
+            @endif
         </div>
         
-        <!-- Menu -->
+        <div class="divider"></div>
+        
         @if($order->unique_menus && count($order->unique_menus) > 0)
         <div class="section">
+            <div class="info-row">
+                <span class="info-label">MENU</span>
+            </div>
             <div class="menu-list">
-                @foreach(array_slice($order->unique_menus, 0, 3) as $menu)
-                    <div class="menu-item">{{ $menu }}</div>
+                @foreach(array_slice($order->unique_menus, 0, 5) as $menu)
+                    <div class="menu-item">
+                        <span>&bull; {{ $menu }}</span>
+                    </div>
                 @endforeach
-                @if(count($order->unique_menus) > 3)
-                    <div class="menu-item">... dan {{ count($order->unique_menus) - 3 }} menu lain</div>
+                @if(count($order->unique_menus) > 5)
+                    <div class="menu-more">... +{{ count($order->unique_menus) - 5 }} MENU LAIN</div>
                 @endif
             </div>
         </div>
         @endif
         
-        <!-- Dates -->
         @if($order->start_date && $order->end_date)
         <div class="section">
-            <div class="dates-info">
-                <div class="info-row">
-                    <span>Mulai:</span>
-                    <span>{{ \Carbon\Carbon::parse($order->start_date)->format('d/m/Y') }}</span>
-                </div>
-                <div class="info-row">
-                    <span>Selesai:</span>
-                    <span>{{ \Carbon\Carbon::parse($order->end_date)->format('d/m/Y') }}</span>
-                </div>
-                <div class="dates-list">
-                    @foreach(array_slice($order->service_dates, 0, 3) as $date)
-                        <div class="date-item">{{ \Carbon\Carbon::parse($date)->format('d/m') }}</div>
-                    @endforeach
-                    @if(count($order->service_dates) > 3)
-                        <div class="date-item">+{{ count($order->service_dates) - 3 }} hari</div>
-                    @endif
-                </div>
+            <div class="info-row">
+                <span class="info-label">PERIODE</span>
+            </div>
+            <div class="date-range">
+                {{ \Carbon\Carbon::parse($order->start_date)->format('d/m/Y') }} s/d {{ \Carbon\Carbon::parse($order->end_date)->format('d/m/Y') }}
+            </div>
+            <div class="dates-grid">
+                @foreach(array_slice($order->service_dates, 0, 5) as $date)
+                    <div>{{ \Carbon\Carbon::parse($date)->format('d/m') }}</div>
+                @endforeach
+                @if(count($order->service_dates) > 5)
+                    <div style="text-align:right;">+{{ count($order->service_dates) - 5 }}</div>
+                @endif
             </div>
         </div>
         @endif
         
-        <!-- Notes -->
         @if(!empty($order->notes) && strcasecmp($order->package_category ?? '', 'personal') === 0)
         <div class="section">
+            <div class="info-row">
+                <span class="info-label">CATATAN</span>
+            </div>
             <div class="notes-box">{{ $order->notes }}</div>
         </div>
         @endif
         
-        <!-- Divider -->
-        <div class="divider"></div>
-        
-        <!-- Total -->
-        <div class="section">
-            <div class="total-box">
-                <div class="total-label">Total</div>
-                <div class="total-amount">Rp {{ number_format($order->amount_total ?? $order->package_price ?? 0, 0, ',', '.') }}</div>
-            </div>
+        <div class="total-box">
+            <div class="total-label">Total Bayar</div>
+            <div class="total-amount">Rp {{ number_format($order->amount_total ?? $order->package_price ?? 0, 0, ',', '.') }}</div>
         </div>
         
-        <!-- Payment Info -->
-        <div class="section">
+        <div class="section payment-info">
             <div class="info-row">
-                <span class="info-label">Metode:</span>
+                <span class="info-label">METODE</span>
                 <span class="info-value">{{ strtoupper($order->payment_method ?? '-') }}</span>
             </div>
             @if($order->paid_at)
             <div class="info-row">
-                <span class="info-label">Bayar:</span>
+                <span class="info-label">BAYAR</span>
                 <span class="info-value">{{ \Carbon\Carbon::parse($order->paid_at)->format('d/m/Y H:i') }}</span>
             </div>
             @endif
         </div>
         
-        <!-- Footer -->
+        <div class="qr-area">
+            @if($order->paid_at && $order->payment_method === 'qris')
+            [QRIS]
+            @endif
+        </div>
+        
         <div class="footer">
-            <p>Terima kasih</p>
-            <p>heartfit</p>
-            <p>{{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}</p>
+            <div class="thanks">TERIMA KASIH</div>
+            <div>HEARTFIT NUTRITION</div>
+            <div style="margin-top:3px;">{{ \Carbon\Carbon::now()->format('d/m/Y H:i') }}</div>
         </div>
     </div>
 </body>

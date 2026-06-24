@@ -16,6 +16,8 @@ use App\Http\Controllers\PetugasController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserDetailController;
 use App\Http\Controllers\RegisterController;
+use App\Http\Controllers\ForgotPasswordController;
+use App\Http\Controllers\SettingController;
 
 Route::get('/', [LandingPageController::class, 'index'])->name('welcome');
 
@@ -24,6 +26,12 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'login'])->name('login.post');
     Route::get('/registrasi', [RegisterController::class, 'showRegistrationForm'])->name('registrasi');
     Route::post('/registrasi', [RegisterController::class, 'register'])->name('registrasi.post');
+
+    // Forgot & Reset Password
+    Route::get('/lupa-password',  [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+    Route::post('/lupa-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+    Route::get('/reset-password/{token}',  [ForgotPasswordController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [ForgotPasswordController::class, 'reset'])->name('password.update');
 });
 
 Route::middleware(['auth', 'session.timeout'])->group(function () {
@@ -102,7 +110,14 @@ Route::middleware(['auth', 'session.timeout'])->group(function () {
     // =======================
     Route::middleware('role:ahli_gizi')->group(function () {
         Route::get('/dashboard/ahli-gizi', [AhliGiziController::class, 'index'])->name('ahli_gizi.orders');
+        Route::get('/dashboard/ahli-gizi/order/{order}', [AhliGiziController::class, 'show'])->name('ahli_gizi.orders.show');
         Route::get('/ahli-gizi/wa/{userId}', [AhliGiziController::class, 'redirectToWa'])->name('ahli_gizi.wa');
+
+        // Session konsultasi menu personal
+        Route::post('/ahli-gizi/order/{order}/session/add',    [AhliGiziController::class, 'sessionAdd'])->name('ahli_gizi.session.add');
+        Route::delete('/ahli-gizi/order/{order}/session/remove', [AhliGiziController::class, 'sessionRemove'])->name('ahli_gizi.session.remove');
+        Route::delete('/ahli-gizi/order/{order}/session/clear', [AhliGiziController::class, 'sessionClear'])->name('ahli_gizi.session.clear');
+        Route::get('/ahli-gizi/order/{order}/session/share',   [AhliGiziController::class, 'sessionShare'])->name('ahli_gizi.session.share');
     });
 
     // =======================
@@ -138,6 +153,12 @@ Route::middleware(['auth', 'session.timeout'])->group(function () {
         Route::middleware('role:superadmin')->group(function () {
             Route::get('/admin/create-admin', [PetugasController::class, 'createAdmin'])->name('admin.create.admin');
             Route::post('/admin/create-admin', [PetugasController::class, 'storeAdmin'])->name('admin.store.admin');
+
+            // Pengaturan Sistem (token Fonnte, SMTP email)
+            Route::get('/admin/settings', [SettingController::class, 'index'])->name('admin.settings');
+            Route::put('/admin/settings', [SettingController::class, 'update'])->name('admin.settings.update');
+            Route::post('/admin/settings/test-email', [SettingController::class, 'testEmail'])->name('admin.settings.test-email');
+            Route::post('/admin/settings/test-wa', [SettingController::class, 'testWa'])->name('admin.settings.test-wa');
         });
 
         // Package Type
@@ -168,7 +189,7 @@ Route::middleware(['auth', 'session.timeout'])->group(function () {
     Route::middleware('role:superadmin,ahli_gizi,medical_record')->group(function () {
         Route::get('/admin/data/customers', [CustomerController::class, 'index'])->name('admin.data.customers');
         Route::get('/admin/data/customers/create', [CustomerController::class, 'create'])->name('admin.data.customers.create');
-        Route::post('/admin/data/customers/create', [UserDetailController::class, 'store'])->name('admin.data.customers.create');
+        Route::post('/admin/data/customers/create', [UserDetailController::class, 'store'])->name('admin.data.customers.store');
         Route::get('/admin/data/customer/detail/{user_detail}', [UserDetailController::class, 'show'])->name('admin.data.customer.detail');
     });
 
@@ -181,19 +202,20 @@ Route::middleware(['auth', 'session.timeout'])->group(function () {
     });
 
     // =======================
-    // ORDERS LIST — akses: admin + superadmin + bendahara + ahli_gizi
-    // (SATU DEFINISI ROUTE SAJA)
+    // ORDERS LIST — akses: admin + superadmin + bendahara
+    // ahli_gizi hanya bisa lihat detail order, BUKAN list semua order
     // =======================
-    Route::middleware('role:admin,superadmin,bendahara,ahli_gizi')->group(function () {
-        // Tetap satu nama: admin.orders.index (biar menu kamu konsisten)
+    Route::middleware('role:admin,superadmin,bendahara')->group(function () {
         Route::get('/admin/orders', [OrderController::class, 'viewOrderByAdmin'])->name('admin.orders.index');
-        // Detail order
         Route::get('/admin/orders/report', [OrderController::class, 'report'])->name('admin.orders.report');
-        Route::get('/admin/orders/{order}', [OrderController::class, 'show'])->name('admin.orders.show');
+        Route::get('/admin/orders/export-excel', [OrderController::class, 'exportExcel'])->name('admin.orders.export');
         Route::get('/admin/orders/{order}/struk', [OrderController::class, 'struk'])->name('admin.orders.struk');
         Route::get('/admin/orders/{order}/pdf', [OrderController::class, 'downloadPdf'])->name('admin.orders.pdf');
-        // Kalau kamu mau URL khusus bendahara (mis. /bendahara/orders), beri NAMA BERBEDA
-        // Route::get('/bendahara/orders', [OrderController::class, 'viewOrderByAdmin'])->name('bendahara.orders.index');
+    });
+
+    // Detail order — ahli_gizi butuh ini untuk halaman konsultasi (tombol "Detail Order")
+    Route::middleware('role:admin,superadmin,bendahara,ahli_gizi')->group(function () {
+        Route::get('/admin/orders/{order}', [OrderController::class, 'show'])->name('admin.orders.show');
     });
 
     // =======================
@@ -210,9 +232,22 @@ Route::middleware(['auth', 'session.timeout'])->group(function () {
     });
 
     Route::middleware('role:customer')->group(function () {
-        // Route::view('/dashboard/customer', 'customers.dashboard')->name('dashboard.customer');
         Route::get('/dashboard/customer', [DashboardCustomerController::class, 'index'])
             ->name('dashboard.customer');
+
+        // Notifikasi
+        Route::get('/notifications', function() {
+            $notifs = auth()->user()->notifications()->latest()->take(20)->get();
+            return response()->json($notifs);
+        })->name('notifications.index');
+        Route::post('/notifications/{id}/read', function($id) {
+            auth()->user()->notifications()->where('id', $id)->update(['read_at' => now()]);
+            return response()->json(['ok' => true]);
+        })->name('notifications.read');
+        Route::post('/notifications/read-all', function() {
+            auth()->user()->unreadNotifications->markAsRead();
+            return response()->json(['ok' => true]);
+        })->name('notifications.read-all');
 
         
         Route::get('/customers/create',    [CustomerController::class, 'create'])->name('customers.create');

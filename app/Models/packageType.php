@@ -11,7 +11,11 @@ class PackageType extends Model
 
     protected $table = 'package_types';
 
-    protected $fillable = ['packageType'];
+    protected $fillable = ['packageType', 'is_personal'];
+
+    protected $casts = [
+        'is_personal' => 'boolean',
+    ];
 
     // Inverse relasi
     public function mealPackages()

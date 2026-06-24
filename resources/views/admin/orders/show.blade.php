@@ -13,7 +13,8 @@
         </div>
 
         <div class="card-body">
-            <!-- Order Information -->
+
+            {{-- ── Informasi Order + Customer ── --}}
             <div class="row mb-4">
                 <div class="col-md-6">
                     <h6>Informasi Order</h6>
@@ -26,8 +27,7 @@
                             <td><strong>Status:</strong></td>
                             <td>
                                 @switch(strtoupper($order->status))
-                                    @case('PAID')
-                                    @case('SETTLEMENT')
+                                    @case('PAID') @case('SETTLEMENT')
                                         <span class="badge bg-success">PAID</span>
                                     @break
                                     @case('UNPAID')
@@ -75,10 +75,9 @@
                                 @if($order->user?->detail?->hp)
                                     {{ $order->user->detail->hp }}
                                     @if(in_array(auth()->user()->role, ['ahli_gizi', 'superadmin']))
-                                        <a href="https://wa.me/62{{ substr($order->user->detail->hp, 1) }}" 
-                                           target="_blank" 
-                                           class="btn btn-sm btn-success ms-2"
-                                           title="Chat via WhatsApp">
+                                        <a href="https://wa.me/62{{ substr($order->user->detail->hp, 1) }}"
+                                           target="_blank"
+                                           class="btn btn-sm btn-success ms-2">
                                             <i class="bx bxl-whatsapp"></i> WA
                                         </a>
                                     @endif
@@ -95,153 +94,92 @@
                 </div>
             </div>
 
-            <!-- Package Information -->
+            {{-- ── Informasi Paket ── --}}
             <div class="row mb-4">
                 <div class="col-12">
                     <h6>Informasi Paket</h6>
-                    <div class="table-responsive">
-                        <table class="table">
-                            <tr>
-                                <td><strong>Nama Paket:</strong></td>
-                                <td>{{ $order->package_label }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Kategori:</strong></td>
-                                <td>{{ $order->package_category ?? '-' }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Batch:</strong></td>
-                                <td>{{ $order->package_batch ?? '-' }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Periode:</strong></td>
-                                <td>
-                                    {{ $order->start_date ? \Carbon\Carbon::parse($order->start_date)->format('d M Y') : '-' }} 
-                                    s.d 
-                                    {{ $order->end_date ? \Carbon\Carbon::parse($order->end_date)->format('d M Y') : '-' }}
-                                    ({{ $order->days ?? 0 }} hari)
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong>Harga Paket:</strong></td>
-                                <td>Rp {{ number_format($order->package_price ?? 0, 0, ',', '.') }}</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Total Bayar:</strong></td>
-                                <td><strong>Rp {{ number_format($order->amount_total ?? $order->package_price ?? 0, 0, ',', '.') }}</strong></td>
-                            </tr>
-                        </table>
-                    </div>
+                    <table class="table table-sm">
+                        <tr>
+                            <td><strong>Nama Paket:</strong></td>
+                            <td>{{ $order->package_label }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Kategori:</strong></td>
+                            <td>{{ $order->package_category ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Batch:</strong></td>
+                            <td>{{ $order->package_batch ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Periode:</strong></td>
+                            <td>
+                                {{ $order->start_date ? \Carbon\Carbon::parse($order->start_date)->format('d M Y') : '-' }}
+                                s.d
+                                {{ $order->end_date ? \Carbon\Carbon::parse($order->end_date)->format('d M Y') : '-' }}
+                                ({{ $order->days ?? 0 }} hari)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Harga Paket:</strong></td>
+                            <td>Rp {{ number_format($order->package_price ?? 0, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Bayar:</strong></td>
+                            <td><strong>Rp {{ number_format($order->amount_total ?? $order->package_price ?? 0, 0, ',', '.') }}</strong></td>
+                        </tr>
+                    </table>
                 </div>
             </div>
 
-            <!-- Service Dates -->
+            {{-- ── Tanggal Layanan ── --}}
             @if($order->service_dates && count($order->service_dates) > 0)
             <div class="row mb-4">
                 <div class="col-12">
                     <h6 class="mb-3">Tanggal Layanan</h6>
-                    
                     @php
                         $serviceDates = $order->service_dates;
-                        $totalDates = count($serviceDates);
-                        $showAll = request('show_all_dates', false);
+                        $totalDates   = count($serviceDates);
+                        $showAll      = request('show_all_dates', false);
                     @endphp
-                    
-                    <div class="row g-2" id="serviceDatesContainer">
-                        @if($totalDates <= 6)
-                            {{-- If 6 or less dates, show all --}}
-                            @foreach($serviceDates as $date)
-                                <div class="col-auto">
-                                    <div class="card card-body p-2 text-center border-0 bg-light">
-                                        <div class="small text-muted mb-1">{{ \Carbon\Carbon::parse($date)->format('D') }}</div>
-                                        <div class="fw-bold">{{ \Carbon\Carbon::parse($date)->format('d') }}</div>
-                                        <div class="small">{{ \Carbon\Carbon::parse($date)->format('M Y') }}</div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        @else
-                            {{-- Show first 5 dates --}}
-                            @for($i = 0; $i < 5; $i++)
-                                <div class="col-auto {{ !$showAll && $i >= 5 ? 'hidden-dates' : '' }}">
-                                    <div class="card card-body p-2 text-center border-0 bg-light">
-                                        <div class="small text-muted mb-1">{{ \Carbon\Carbon::parse($serviceDates[$i])->format('D') }}</div>
-                                        <div class="fw-bold">{{ \Carbon\Carbon::parse($serviceDates[$i])->format('d') }}</div>
-                                        <div class="small">{{ \Carbon\Carbon::parse($serviceDates[$i])->format('M Y') }}</div>
-                                    </div>
-                                </div>
-                            @endfor
-                            
-                            {{-- Hidden dates indicator --}}
-                            @if(!$showAll)
-                                <div class="col-auto">
-                                    <div class="card card-body p-2 text-center border-0 bg-secondary">
-                                        <div class="small text-white">...</div>
-                                        <div class="fw-bold text-white">{{ $totalDates - 6 }}</div>
-                                        <div class="small text-white">lainnya</div>
-                                    </div>
-                                </div>
-                            @endif
-                            
-                            {{-- Show last date --}}
-                            <div class="col-auto">
-                                <div class="card card-body p-2 text-center border-0 bg-light">
-                                    <div class="small text-muted mb-1">{{ \Carbon\Carbon::parse($serviceDates[$totalDates - 1])->format('D') }}</div>
-                                    <div class="fw-bold">{{ \Carbon\Carbon::parse($serviceDates[$totalDates - 1])->format('d') }}</div>
-                                    <div class="small">{{ \Carbon\Carbon::parse($serviceDates[$totalDates - 1])->format('M Y') }}</div>
-                                </div>
+                    <div class="row g-2">
+                        @foreach(array_slice($serviceDates, 0, $showAll ? $totalDates : 6) as $sd)
+                        <div class="col-auto">
+                            <div class="card card-body p-2 text-center border-0 bg-light">
+                                <div class="small text-muted mb-1">{{ \Carbon\Carbon::parse($sd)->format('D') }}</div>
+                                <div class="fw-bold">{{ \Carbon\Carbon::parse($sd)->format('d') }}</div>
+                                <div class="small">{{ \Carbon\Carbon::parse($sd)->format('M Y') }}</div>
                             </div>
-                            
-                            {{-- Hidden dates (shown when toggle is active) --}}
-                            @if($showAll)
-                                @for($i = 5; $i < $totalDates - 1; $i++)
-                                    <div class="col-auto">
-                                        <div class="card card-body p-2 text-center border-0 bg-light">
-                                            <div class="small text-muted mb-1">{{ \Carbon\Carbon::parse($serviceDates[$i])->format('D') }}</div>
-                                            <div class="fw-bold">{{ \Carbon\Carbon::parse($serviceDates[$i])->format('d') }}</div>
-                                            <div class="small">{{ \Carbon\Carbon::parse($serviceDates[$i])->format('M Y') }}</div>
-                                        </div>
-                                    </div>
-                                @endfor
-                            @endif
+                        </div>
+                        @endforeach
+                        @if(!$showAll && $totalDates > 6)
+                        <div class="col-auto">
+                            <div class="card card-body p-2 text-center border-0 bg-secondary">
+                                <div class="small text-white">+{{ $totalDates - 6 }}</div>
+                                <div class="fw-bold text-white">lagi</div>
+                            </div>
+                        </div>
                         @endif
                     </div>
-                    
-                    <div class="mt-3 d-flex justify-content-between align-items-center">
+                    <div class="mt-2 d-flex justify-content-between align-items-center">
                         <small class="text-muted">Total: {{ $totalDates }} hari layanan</small>
-                        
                         @if($totalDates > 6)
-                            <button class="btn btn-sm btn-outline-primary" id="toggleDatesBtn" onclick="toggleAllDates()">
-                                <i class="bx bx-{{ $showAll ? 'chevron-up' : 'chevron-down' }}"></i>
-                                {{ $showAll ? 'Sembunyikan' : 'Lihat Semua' }}
-                            </button>
+                        <a href="{{ request()->fullUrlWithQuery(['show_all_dates' => $showAll ? 0 : 1]) }}"
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="bx bx-{{ $showAll ? 'chevron-up' : 'chevron-down' }}"></i>
+                            {{ $showAll ? 'Sembunyikan' : 'Lihat Semua' }}
+                        </a>
                         @endif
                     </div>
                 </div>
             </div>
-            
-            @if($totalDates > 6)
-            <script>
-            function toggleAllDates() {
-                const currentUrl = new URL(window.location);
-                const isShowingAll = currentUrl.searchParams.get('show_all_dates') === '1';
-                
-                if (isShowingAll) {
-                    currentUrl.searchParams.delete('show_all_dates');
-                } else {
-                    currentUrl.searchParams.set('show_all_dates', '1');
-                }
-                
-                window.location.href = currentUrl.toString();
-            }
-            </script>
-            @endif
             @endif
 
-            <!-- Unique Menus -->
+            {{-- ── Menu Unik ── --}}
             @if($order->unique_menus && count($order->unique_menus) > 0)
             <div class="row mb-4">
                 <div class="col-12">
-                    <h6>Menu yang didapatkan ({{ $order->unique_menu_count ?? count($order->unique_menus) }} menu)</h6>
+                    <h6>Menu yang Didapatkan ({{ $order->unique_menu_count ?? count($order->unique_menus) }} menu)</h6>
                     <div class="d-flex flex-wrap gap-2">
                         @foreach($order->unique_menus as $menu)
                             <span class="badge bg-info text-white">{{ $menu }}</span>
@@ -251,30 +189,178 @@
             </div>
             @endif
 
-            <!-- Catatan Khusus (Hanya untuk paket personal) -->
-            @if(!empty($order->notes) && strcasecmp($order->package_category ?? '', 'personal') === 0)
+            {{-- ── Catatan Khusus ── --}}
+            @if(!empty($order->notes))
             <div class="row mb-4">
                 <div class="col-12">
-                    <h6 class="mb-3">
-                        <i class="bx bx-comment-dots me-2"></i>Catatan Khusus Customer
-                        <small class="text-muted">(Paket Personal)</small>
+                    <h6 class="mb-2">
+                        <i class="bx bx-comment-dots me-2"></i>Catatan Customer
+                        @if(strcasecmp($order->package_category ?? '', 'personal') === 0)
+                            <small class="text-muted">(Paket Personal)</small>
+                        @endif
                     </h6>
-                    <div class="alert alert-info">
-                        <div class="d-flex align-items-start">
-                            <i class="bx bx-info-circle me-2 mt-1"></i>
-                            <div>
-                                <p class="mb-0">{{ $order->notes }}</p>
-                                <small class="text-muted d-block mt-2">
-                                    <i class="bx bx-time-five me-1"></i>
-                                    Ditambahkan pada: {{ $order->updated_at ? $order->updated_at->format('d M Y H:i') : $order->created_at->format('d M Y H:i') }}
-                                </small>
-                            </div>
-                        </div>
+                    <div class="alert alert-info py-2 mb-0">
+                        <i class="bx bx-info-circle me-1"></i>{{ $order->notes }}
                     </div>
                 </div>
             </div>
             @endif
-        </div>
-    </div>
+
+            {{-- ── Progres Pengambilan ── --}}
+            @if(in_array(strtoupper($order->status), ['PAID','SETTLEMENT']))
+            @php
+                $pickup  = $order->getPickupProgress();
+                $history = $order->getPickupHistory();
+
+                $stCfg = [
+                    'pending'  => ['color'=>'#6c757d','icon'=>'bx-time',        'label'=>'Menunggu'],
+                    'diterima' => ['color'=>'#17a2b8','icon'=>'bx-package',     'label'=>'Diterima'],
+                    'diproses' => ['color'=>'#fd7e14','icon'=>'bx-bowl-hot',    'label'=>'Diproses'],
+                    'siap'     => ['color'=>'#6f42c1','icon'=>'bx-bell',        'label'=>'Siap Diambil 🔔'],
+                    'diambil'  => ['color'=>'#28a745','icon'=>'bx-check-circle','label'=>'Diambil ✓'],
+                ];
+
+                $historyMap  = $history->keyBy(fn($r) => \Carbon\Carbon::parse($r->delivery_date)->toDateString());
+                $periodDates = [];
+                if ($order->start_date && $order->end_date) {
+                    $cur = \Carbon\Carbon::parse($order->start_date)->copy();
+                    $eod = \Carbon\Carbon::parse($order->end_date);
+                    while ($cur->lte($eod)) {
+                        $periodDates[] = $cur->toDateString();
+                        $cur->addDay();
+                    }
+                }
+            @endphp
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h6 class="mb-3 d-flex align-items-center gap-2">
+                        <i class="bx bx-store-alt text-success"></i>
+                        Progres Pengambilan
+                        <span class="badge bg-success rounded-pill ms-1">
+                            {{ $pickup['total_diambil'] }} / {{ $pickup['total_sesi'] }} sesi
+                        </span>
+                    </h6>
+
+                    {{-- KPI cards --}}
+                    <div class="row g-3 mb-3">
+                        <div class="col-6 col-sm-3">
+                            <div class="rounded-3 text-center py-3 px-2" style="background:#f0fff4;border:1px solid #d4edda;">
+                                <div class="fw-bold fs-3 text-success">{{ $pickup['total_diambil'] }}</div>
+                                <div class="text-muted small">Sesi Diambil</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="rounded-3 text-center py-3 px-2" style="background:#f8f9fa;border:1px solid #dee2e6;">
+                                <div class="fw-bold fs-3 text-secondary">{{ $pickup['total_sesi'] }}</div>
+                                <div class="text-muted small">Total Sesi</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="rounded-3 text-center py-3 px-2" style="background:#f8f9fa;border:1px solid #dee2e6;">
+                                <div class="fw-bold fs-3 text-secondary">{{ $pickup['hari_diambil'] }}/{{ $pickup['hari_total'] }}</div>
+                                <div class="text-muted small">Hari Penuh</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="rounded-3 text-center py-3 px-2"
+                                 style="background:{{ $pickup['persen']==100 ? '#f0fff4' : '#fff8e1' }};border:1px solid {{ $pickup['persen']==100 ? '#d4edda' : '#ffe082' }};">
+                                <div class="fw-bold fs-3" style="color:{{ $pickup['persen']==100 ? '#28a745' : '#ffc107' }};">
+                                    {{ $pickup['persen'] }}%
+                                </div>
+                                <div class="text-muted small">Selesai</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Progress bar --}}
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span><i class="bx bx-sun me-1 text-warning"></i>Siang: <strong>{{ $pickup['diambil_siang'] }}/{{ $pickup['siang_total'] }}</strong></span>
+                        <span><i class="bx bx-moon me-1 text-primary"></i>Malam: <strong>{{ $pickup['diambil_malam'] }}/{{ $pickup['malam_total'] }}</strong></span>
+                    </div>
+                    <div class="progress mb-4" style="height:12px;border-radius:6px;">
+                        <div class="progress-bar {{ $pickup['persen']==100 ? 'bg-success' : 'bg-warning' }}"
+                             role="progressbar"
+                             style="width:{{ $pickup['persen'] }}%;border-radius:6px;"
+                             aria-valuenow="{{ $pickup['persen'] }}" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+
+                    {{-- Tabel per-hari --}}
+                    @if(count($periodDates) > 0)
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle" style="font-size:13px;">
+                            <thead class="table-light text-center">
+                                <tr>
+                                    <th style="width:36px;">#</th>
+                                    <th class="text-start">Tanggal</th>
+                                    <th><i class="bx bx-sun text-warning"></i> Siang</th>
+                                    <th><i class="bx bx-moon text-primary"></i> Malam</th>
+                                    <th>Dikonfirmasi oleh</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($periodDates as $idx => $date)
+                                @php
+                                    $row      = $historyMap[$date] ?? null;
+                                    $cS       = $stCfg[$row->status_siang ?? 'pending'] ?? $stCfg['pending'];
+                                    $cM       = $stCfg[$row->status_malam ?? 'pending'] ?? $stCfg['pending'];
+                                    $isToday  = $date === \Carbon\Carbon::today()->toDateString();
+                                    $bothDone = $row && $row->status_siang === 'diambil' && $row->status_malam === 'diambil';
+                                @endphp
+                                <tr class="{{ $bothDone ? 'table-success' : ($isToday ? 'table-info' : '') }}">
+                                    <td class="text-muted text-center">{{ $idx + 1 }}</td>
+                                    <td class="fw-semibold">
+                                        {{ \Carbon\Carbon::parse($date)->locale('id')->isoFormat('ddd, D MMM Y') }}
+                                        @if($isToday)
+                                            <span class="badge bg-primary ms-1" style="font-size:9px;">Hari ini</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-center">
+                                        @if($row)
+                                        <span class="badge rounded-pill"
+                                              style="background:{{ $cS['color'] }};color:#fff;font-size:11px;padding:4px 10px;">
+                                            <i class="bx {{ $cS['icon'] }} me-1"></i>{{ $cS['label'] }}
+                                        </span>
+                                        @else
+                                        <span class="text-muted small">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-center">
+                                        @if($row)
+                                        <span class="badge rounded-pill"
+                                              style="background:{{ $cM['color'] }};color:#fff;font-size:11px;padding:4px 10px;">
+                                            <i class="bx {{ $cM['icon'] }} me-1"></i>{{ $cM['label'] }}
+                                        </span>
+                                        @else
+                                        <span class="text-muted small">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-muted small">
+                                        @if($row && $row->confirmer)
+                                            <i class="bx bx-user me-1"></i>{{ $row->confirmer->name }}
+                                            @if($row->confirmed_at)
+                                                <div style="font-size:10px;">
+                                                    {{ \Carbon\Carbon::parse($row->confirmed_at)->format('d/m H:i') }}
+                                                </div>
+                                            @endif
+                                        @else
+                                            —
+                                        @endif
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @else
+                    <p class="text-muted small mb-0">Data periode tidak tersedia.</p>
+                    @endif
+
+                </div>
+            </div>
+            @endif
+
+        </div>{{-- /card-body --}}
+    </div>{{-- /card --}}
 </div>
 @endsection

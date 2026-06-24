@@ -35,6 +35,34 @@
             </div>
           </div>
 
+          {{-- Perlu Konsultasi Ahli Gizi --}}
+          <div class="mb-4">
+              <label class="form-label fw-semibold">Perlu Konsultasi Ahli Gizi?</label>
+              <div class="d-flex gap-3">
+                  <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="radio"
+                             name="is_personal" id="is_personal_yes" value="1"
+                             {{ old('is_personal', $packageType->is_personal ? '1' : '0') == '1' ? 'checked' : '' }}>
+                      <label class="form-check-label" for="is_personal_yes">
+                          <span class="badge bg-label-primary me-1"><i class="bx bx-user-check"></i></span>
+                          Ya — order masuk ke Ahli Gizi
+                      </label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="radio"
+                             name="is_personal" id="is_personal_no" value="0"
+                             {{ old('is_personal', $packageType->is_personal ? '1' : '0') == '0' ? 'checked' : '' }}>
+                      <label class="form-check-label" for="is_personal_no">
+                          <span class="badge bg-label-secondary me-1"><i class="bx bx-x"></i></span>
+                          Tidak — order reguler biasa
+                      </label>
+                  </div>
+              </div>
+              <small class="text-muted mt-1 d-block">
+                  Jika <strong>Ya</strong>, semua order dengan tipe paket ini akan tampil di dashboard Ahli Gizi untuk dikonsultasikan.
+              </small>
+          </div>
+
           <div class="d-flex justify-content-between">
             <a href="{{ route('admin.packageType') }}" class="btn btn-outline-secondary">Kembali</a>
             <div class="d-flex gap-2">

@@ -8,6 +8,10 @@ use App\Models\Order;
 use App\Models\PaymentTransaction;
 use App\Services\MidtransService;
 use App\Services\PdfService;
+use App\Services\FonnteService;
+use App\Exports\OrdersExport;
+use App\Notifications\OrderCreatedNotification;
+use App\Notifications\PaymentSuccessNotification;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
@@ -23,7 +27,8 @@ class OrderController extends Controller
 {
     public function index()
     {
-        $q = request('q');
+        $q       = request('q');
+        $status  = request('status');
         $perPage = (int) request('per_page', 10);
 
         $orders = Order::query()
@@ -32,10 +37,18 @@ class OrderController extends Controller
                 $query->where('order_number', 'like', "%{$q}%")
                     ->orWhere('package_label', 'like', "%{$q}%");
             })
+            ->when($status, function ($query) use ($status) {
+                // PAID juga cocokkan SETTLEMENT
+                if (strtoupper($status) === 'PAID') {
+                    $query->whereIn('status', ['PAID', 'SETTLEMENT']);
+                } else {
+                    $query->where('status', strtoupper($status));
+                }
+            })
             ->latest('id')
             ->paginate($perPage);
 
-        return view('customers.orders.index', compact('orders', 'perPage'));
+        return view('customers.orders.index', compact('orders', 'perPage', 'status'));
     }
 
     public function viewOrderByAdmin()
@@ -74,6 +87,24 @@ class OrderController extends Controller
         // dd($orders);
 
         return view('admin.orders.index', compact('orders', 'perPage'));
+    }
+
+    /**
+     * Export orders ke Excel
+     */
+    public function exportExcel(Request $request)
+    {
+        $q        = $request->input('q');
+        $dateFrom = $request->input('date_from');
+        $dateTo   = $request->input('date_to');
+        $status   = $request->input('status');
+
+        $filename = 'orders-' . now()->format('Ymd-His') . '.xlsx';
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new OrdersExport($dateFrom, $dateTo, $q, $status),
+            $filename
+        );
     }
 
 
@@ -381,8 +412,28 @@ class OrderController extends Controller
 
         // --- alur redirect sama seperti sebelumnya ---
         if ($order->payment_method === 'cod') {
+            // Kirim notifikasi WA order dibuat
+            try {
+                $order->load(['user', 'user.detail']);
+                app(FonnteService::class)->sendOrderCreated($order);
+            } catch (\Exception $e) {
+                Log::warning('[Fonnte] Gagal kirim notif order baru', ['error' => $e->getMessage()]);
+            }
+            // Notifikasi in-app
+            try { $order->user?->notify(new OrderCreatedNotification($order)); } catch (\Exception $e) {}
             return redirect()->route('orders.finish', $order);
         }
+
+        // Kirim notifikasi WA order dibuat (transfer)
+        try {
+            $order->load(['user', 'user.detail']);
+            app(FonnteService::class)->sendOrderCreated($order);
+        } catch (\Exception $e) {
+            Log::warning('[Fonnte] Gagal kirim notif order baru', ['error' => $e->getMessage()]);
+        }
+        // Notifikasi in-app
+        try { $order->user?->notify(new OrderCreatedNotification($order)); } catch (\Exception $e) {}
+
         return redirect()->route('orders.pay', $order);
     }
 
@@ -802,9 +853,18 @@ class OrderController extends Controller
                     $order->update([
                         'status'  => 'PAID',
                         'paid_at' => now(),
-                        // set payment_method online kalau sebelumnya COD (harusnya tidak terjadi untuk jalur midtrans)
                         'payment_method' => $order->payment_method === 'cod' ? 'transfer' : $order->payment_method,
                     ]);
+
+                    // Kirim notifikasi WA pembayaran berhasil
+                    try {
+                        $order->load(['user', 'user.detail']);
+                        app(FonnteService::class)->sendPaymentSuccess($order);
+                    } catch (\Exception $e) {
+                        Log::warning('[Fonnte] Gagal kirim notif payment success', ['error' => $e->getMessage()]);
+                    }
+                    // Notifikasi in-app
+                    try { $order->user?->notify(new PaymentSuccessNotification($order)); } catch (\Exception $e) {}
                 }
                 break;
 
@@ -1000,14 +1060,18 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
-        // Eager load relationships to avoid N+1 queries
         $order->load([
-            'user:id,name,email',
-            'user.detail:id,user_id,hp,alamat',
+            'user',
+            'user.detail',
             'paymentTransactions' => function ($query) {
                 $query->latest('attempt');
             }
         ]);
+
+        // Pastikan user bisa dilihat meski soft-deleted
+        if (!$order->relationLoaded('user') || !$order->user) {
+            $order->setRelation('user', \App\Models\User::withTrashed()->find($order->user_id));
+        }
 
         return view('admin.orders.show', compact('order'));
     }
@@ -1015,9 +1079,13 @@ class OrderController extends Controller
     public function struk(Order $order)
     {
         $order->load([
-            'user:id,name,email',
-            'user.detail:id,user_id,hp,alamat',
+            'user',
+            'user.detail',
         ]);
+
+        if (!$order->user) {
+            $order->setRelation('user', \App\Models\User::withTrashed()->find($order->user_id));
+        }
 
         return view('admin.orders.struk', compact('order'));
     }
@@ -1025,9 +1093,18 @@ class OrderController extends Controller
     public function downloadPdf(Order $order, PdfService $pdfService)
     {
         $order->load([
-            'user:id,name,email',
-            'user.detail:id,user_id,hp,alamat',
+            'user',
+            'user.detail',
+            'paymentTransactions' => fn($q) => $q->latest('attempt'),
         ]);
+
+        // Load soft-deleted user jika null
+        if (!$order->user) {
+            $order->setRelation('user', \App\Models\User::withTrashed()->find($order->user_id));
+            if ($order->user) {
+                $order->user->load('detail');
+            }
+        }
 
         return $pdfService->downloadOrderPdf($order);
     }

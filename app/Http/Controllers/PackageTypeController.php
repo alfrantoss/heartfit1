@@ -34,10 +34,12 @@ class PackageTypeController extends Controller
     {
         $request->validate([
             'packageType' => 'required|string|max:50',
+            'is_personal' => 'nullable|boolean',
         ]);
 
         PackageType::create([
             'packageType' => $request->packageType,
+            'is_personal' => $request->boolean('is_personal'),
         ]);
 
         return redirect()
@@ -62,9 +64,14 @@ class PackageTypeController extends Controller
     {
         $data = $request->validate([
             'packageType' => 'required|string|max:50',
+            'is_personal' => 'nullable|boolean',
         ]);
 
-        $packageType->update($data);
+        $packageType->update([
+            'packageType' => $data['packageType'],
+            'is_personal' => $request->boolean('is_personal'),
+        ]);
+
         return redirect()
             ->route('admin.packageType')
             ->with('success', 'Package type berhasil diperbarui');

@@ -28,7 +28,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-start justify-content-between">
                         <div>
-                            <span class="fw-semibold d-block mb-1 text-muted">Total Orders</span>
+                            <span class="fw-semibold d-block mb-1 text-muted">Total Orders Personal</span>
                             <h3 class="card-title mb-0">{{ number_format($summary['total_orders']) }}</h3>
                         </div>
                         <div class="avatar flex-shrink-0">
@@ -45,7 +45,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-start justify-content-between">
                         <div>
-                            <span class="fw-semibold d-block mb-1 text-muted">Order Aktif Hari Ini</span>
+                            <span class="fw-semibold d-block mb-1 text-muted">Order Personal Aktif Hari Ini</span>
                             <h3 class="card-title mb-0">{{ number_format($summary['active_today']) }}</h3>
                         </div>
                         <div class="avatar flex-shrink-0">
@@ -62,7 +62,7 @@
                 <div class="card-body">
                     <div class="d-flex align-items-start justify-content-between">
                         <div>
-                            <span class="fw-semibold d-block mb-1 text-muted">Orders Bulan Ini</span>
+                            <span class="fw-semibold d-block mb-1 text-muted">Orders Personal Bulan Ini</span>
                             <h3 class="card-title mb-0">{{ number_format($summary['orders_this_month']) }}</h3>
                         </div>
                         <div class="avatar flex-shrink-0">
@@ -127,7 +127,17 @@
                     <tbody class="table-border-bottom-0">
                         @forelse($orders as $order)
                             <tr>
-                                <td>{{ $order->order_number }}</td>
+                                <td>
+                                    <a href="{{ route('ahli_gizi.orders.show', $order->id) }}"
+                                       class="fw-semibold text-primary text-decoration-none">
+                                        {{ $order->order_number }}
+                                    </a>
+                                    @if(session('konsul_menus_' . $order->id))
+                                        <span class="badge bg-success ms-1" title="Ada session konsultasi aktif">
+                                            <i class="bx bx-clipboard-check"></i>
+                                        </span>
+                                    @endif
+                                </td>
                                 <td>{{ $order->user->name }}</td>
                                 <td>{{ $order->user->email }}</td>
                                 <td>{{ $order->package_label }}</td>
@@ -150,8 +160,11 @@
                                             <i class="bx bx-dots-vertical-rounded"></i>
                                         </button>
                                         <div class="dropdown-menu">
+                                            <a class="dropdown-item" href="{{ route('ahli_gizi.orders.show', $order->id) }}">
+                                                <i class="bx bx-clipboard-check me-1"></i> Konsultasi Gizi
+                                            </a>
                                             <a class="dropdown-item" href="{{ route('admin.orders.show', $order->id) }}">
-                                                <i class="bx bx-detail me-1"></i> Detail
+                                                <i class="bx bx-detail me-1"></i> Detail Order
                                             </a>
                                             @if($order->user->detail && $order->user->detail->hp)
                                                 <a class="dropdown-item" href="{{ route('ahli_gizi.wa', $order->user->id) }}" target="_blank">

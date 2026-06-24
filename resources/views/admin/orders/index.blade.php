@@ -14,7 +14,7 @@
                         <div class="input-group" style="min-width: 280px;">
                             <span class="input-group-text"><i class="bx bx-search"></i></span>
                             <input type="search" name="q" value="{{ request('q') }}" class="form-control"
-                                placeholder="Cari nomor order / paket">
+                                placeholder="Cari nomor order / nama / paket">
                         </div>
                         <div class="input-group" style="max-width: 160px;">
                             <span class="input-group-text">Rows</span>
@@ -27,23 +27,22 @@
                                 @endforeach
                             </select>
                         </div>
-                        <button class="btn btn-primary" type="submit">Search</button>
+                        <button class="btn btn-primary" type="submit">Cari</button>
                         @if (request('q'))
                             <a href="{{ url()->current() }}?per_page={{ request('per_page', $perPage ?? 10) }}"
                                 class="btn btn-outline-secondary">Reset</a>
                         @endif
                     </form>
 
-                    <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#reportModal">
-                        <i class="bx bx-printer"></i> Laporan
-                    </button>
+                    {{-- Export Excel --}}
+                    <a href="{{ route('admin.orders.export', request()->only(['q','date_from','date_to','status'])) }}"
+                       class="btn btn-success">
+                        <i class="bx bx-download me-1"></i> Export Excel
+                    </a>
 
-                    {{-- Tombol buat order baru hanya untuk customer --}}
-                    @if(auth()->user()->role === 'customer')
-                        <a class="btn btn-success" href="{{ route('orders.create') }}">
-                            <i class="bi bi-plus-circle"></i> Buat Order
-                        </a>
-                    @endif
+                    <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#reportModal">
+                        <i class="bx bx-printer"></i> Laporan PDF
+                    </button>
                 </div>
             </div>
 
@@ -138,6 +137,14 @@
                                 <td>
                                     {{ $fmt($o->start_date) }} — {{ $fmt($o->end_date) }}
                                     <div class="small text-muted">{{ (int) ($o->days ?? 0) }} hari</div>
+                                    @if(in_array(strtoupper($o->status), ['PAID','SETTLEMENT']))
+                                    @php $pp = $o->getPickupProgress(); @endphp
+                                    <span class="badge rounded-pill bg-success mt-1"
+                                          style="font-size:10px;padding:3px 8px;"
+                                          title="Progress pengambilan">
+                                        <i class="bx bx-check-circle me-1"></i>{{ $pp['total_diambil'] }}/{{ $pp['total_sesi'] }} sesi
+                                    </span>
+                                    @endif
                                 </td>
 
                                 {{-- Total --}}
@@ -191,6 +198,7 @@
                                         @endif
 
                                         @if(auth()->user()->role === 'admin')
+                                            @php $ppCetak = in_array(strtoupper($o->status), ['PAID','SETTLEMENT']) ? $o->getPickupProgress() : null; @endphp
                                             <button type="button" class="btn btn-sm btn-outline-info btn-cetak-preview"
                                                 data-bs-toggle="modal"
                                                 data-bs-target="#cetakModal"
@@ -210,6 +218,8 @@
                                                 data-created="{{ $o->created_at ? $o->created_at->format('d/m/Y H:i') : '-' }}"
                                                 data-notes="{{ $o->notes ?? '-' }}"
                                                 data-pdf-url="{{ route('admin.orders.pdf', $o) }}"
+                                                data-pickup-text="{{ $ppCetak ? ($ppCetak['total_diambil'].' dari '.$ppCetak['total_sesi'].' sesi diambil ('.$ppCetak['persen'].'%)') : '-' }}"
+                                                data-pickup-show="{{ $ppCetak ? '1' : '0' }}"
                                             >
                                                 <i class="bx bx-printer"></i> Print
                                             </button>
@@ -347,10 +357,21 @@
                                 <small id="cm-notes"></small>
                             </div>
                         </div>
+                        <div id="cm-pickup-section">
+                            <hr>
+                            <h6 class="fw-bold text-primary mb-2">Progress Pengambilan</h6>
+                            <div class="alert alert-success py-2 mb-0">
+                                <i class="bx bx-check-circle me-2"></i>
+                                <small id="cm-pickup-text"></small>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn btn-outline-dark" id="cm-print-btn">
+                        <i class="bx bx-printer me-1"></i> Print
+                    </button>
                     <a href="#" id="cm-download-btn" class="btn btn-primary" target="_blank">
                         <i class="bx bx-download me-1"></i> Download PDF
                     </a>
@@ -396,7 +417,64 @@
                 } else {
                     notesSection.style.display = 'none';
                 }
+
+                const pickupSection = document.getElementById('cm-pickup-section');
+                if (d.pickupShow === '1') {
+                    pickupSection.style.display = '';
+                    document.getElementById('cm-pickup-text').textContent = d.pickupText;
+                } else {
+                    pickupSection.style.display = 'none';
+                }
             });
+        });
+
+        // Tombol Print — cetak konten preview modal
+        document.getElementById('cm-print-btn').addEventListener('click', function() {
+            const content = document.getElementById('cetakPreviewContent').innerHTML;
+            const printWindow = window.open('', '_blank', 'width=800,height=600');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="id">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Print Order</title>
+                    <link rel="stylesheet" href="{{ asset('assets/vendor/css/bootstrap.min.css') }}">
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: #fff; }
+                        .bg-success { background-color: #198754; }
+                        .bg-warning { background-color: #ffc107; color: #000 !important; }
+                        .bg-secondary { background-color: #6c757d; }
+                        .bg-danger { background-color: #dc3545; }
+                        .bg-light { background-color: #f8f9fa; color: #212529 !important; }
+                        .fw-bold { font-weight: bold; }
+                        .fw-semibold { font-weight: 600; }
+                        .text-primary { color: #0d6efd !important; }
+                        .text-success { color: #198754 !important; }
+                        .text-muted { color: #6c757d !important; }
+                        .fs-5 { font-size: 1.25rem; }
+                        table { width: 100%; border-collapse: collapse; }
+                        td { padding: 4px 8px; vertical-align: top; }
+                        hr { border-top: 1px solid #dee2e6; margin: 12px 0; }
+                        .alert-warning { background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 8px 12px; }
+                        .row { display: flex; flex-wrap: wrap; }
+                        .col-md-6 { flex: 0 0 50%; max-width: 50%; padding: 0 8px; }
+                        .text-center { text-align: center; }
+                        .mb-3 { margin-bottom: 16px; }
+                        h4 { font-size: 1.25rem; margin: 0; }
+                        h6 { font-size: 0.9rem; margin: 0 0 8px; }
+                        @media print {
+                            @page { size: A4; margin: 15mm; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${content}
+                    <script>window.onload = function() { window.print(); window.close(); }<\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
         });
     });
     </script>

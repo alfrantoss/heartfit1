@@ -14,6 +14,19 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+
+        //=== Superadmin ==
+        $admin = User::updateOrCreate(
+            ['email' => 'superadmin1@mail.com'],
+            [
+                'name'     => 'superadmin1',
+                'password' => Hash::make('password123'),
+                'role'     => 'superadmin',
+            ]
+        );
+
+
+
         // === ADMIN ===
         $admin = User::updateOrCreate(
             ['email' => 'superadmin@mail.com'],

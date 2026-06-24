@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\UserDetail;
 use Carbon\Carbon;
-use Illuminate\Support\Str;
 
 class MRGeneratorService
 {
@@ -15,8 +15,8 @@ class MRGeneratorService
     {
         $datePart = Carbon::now()->format('dmY');
         $randomPart = str_pad(mt_rand(1, 999), 3, '0', STR_PAD_LEFT);
-        
-        return $datePart . $randomPart;
+
+        return $datePart.$randomPart;
     }
 
     /**
@@ -29,7 +29,9 @@ class MRGeneratorService
 
         do {
             $mr = self::generate();
-            $exists = \App\Models\UserDetail::where('mr', $mr)->exists();
+            $exists = UserDetail::whereHas('user', function ($q) {
+                $q->whereNull('deleted_at');
+            })->where('mr', $mr)->exists();
             $attempts++;
         } while ($exists && $attempts < $maxAttempts);
 
