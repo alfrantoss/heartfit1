@@ -24,6 +24,9 @@ php artisan storage:link --force || echo "[WARN] storage:link failed"
 echo "==> Running migrations..."
 php artisan migrate --force || echo "[WARN] migrate failed"
 
+echo "==> Running seeders..."
+php artisan db:seed --force || echo "[WARN] db:seed failed"
+
 echo "==> Forcing Apache MPM prefork..."
 rm -f /etc/apache2/mods-enabled/mpm_*.load
 rm -f /etc/apache2/mods-enabled/mpm_*.conf
