@@ -16,11 +16,12 @@ RUN npm run build
 # ============================================================
 FROM php:8.3-fpm-alpine AS app
 
-# Install system dependencies
+# Install system dependencies + PHP extensions
 RUN apk add --no-cache \
     nginx \
     supervisor \
     curl \
+    bash \
     libpng \
     libpng-dev \
     libjpeg-turbo \
@@ -58,7 +59,7 @@ COPY . .
 # Copy built frontend assets from Node stage
 COPY --from=node-builder /app/public/build ./public/build
 
-# Install PHP dependencies (production)
+# Install PHP dependencies (production, skip scripts — artisan runs in start.sh)
 RUN composer install \
     --optimize-autoloader \
     --no-dev \
@@ -68,14 +69,8 @@ RUN composer install \
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache
-
-# PHP-FPM configuration
-RUN sed -i 's/listen = 127.0.0.1:9000/listen = \/var\/run\/php-fpm.sock/' /usr/local/etc/php-fpm.d/www.conf \
-    && sed -i 's/;listen.owner = www-data/listen.owner = www-data/' /usr/local/etc/php-fpm.d/www.conf \
-    && sed -i 's/;listen.group = www-data/listen.group = www-data/' /usr/local/etc/php-fpm.d/www.conf \
-    && sed -i 's/;listen.mode = 0660/listen.mode = 0660/' /usr/local/etc/php-fpm.d/www.conf
+    && chmod -R 775 /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache
 
 # OPcache configuration for production
 RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
@@ -83,12 +78,12 @@ RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.max_accelerated_files=20000" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.validate_timestamps=0" >> /usr/local/etc/php/conf.d/opcache.ini
 
-# Nginx configuration
+# Copy config files
 COPY docker/nginx.conf /etc/nginx/nginx.conf
-
-# Supervisor configuration
 COPY docker/supervisord.conf /etc/supervisord.conf
+COPY docker/start.sh /start.sh
+RUN chmod +x /start.sh
 
 EXPOSE 8080
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+CMD ["/start.sh"]
