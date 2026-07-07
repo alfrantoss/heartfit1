@@ -15,9 +15,9 @@ return new class extends Migration
         \Illuminate\Support\Facades\DB::table('order_delivery_statuses')->truncate();
 
         Schema::table('order_delivery_statuses', function (Blueprint $table) {
-            // Drop foreign key first because it relies on the unique index
-            $table->dropForeign(['menu_makanan_id']);
-            $table->dropUnique('ods_unique_pkg_menu_date');
+            // Drop foreign key safely (might not exist on fresh DB)
+            try { $table->dropForeign(['menu_makanan_id']); } catch (\Throwable $e) {}
+            try { $table->dropUnique('ods_unique_pkg_menu_date'); } catch (\Throwable $e) {}
             
             // Re-add the foreign key
             $table->foreign('menu_makanan_id')->references('id')->on('menu_makanans')->cascadeOnDelete();
@@ -26,9 +26,12 @@ return new class extends Migration
                 $table->dropConstrainedForeignId('meal_package_id');
             }
             
-            $table->foreignId('order_id')->after('id')
-                  ->constrained('orders')->cascadeOnDelete();
+            if (!Schema::hasColumn('order_delivery_statuses', 'order_id')) {
+                $table->foreignId('order_id')->after('id')
+                      ->constrained('orders')->cascadeOnDelete();
+            }
                   
+            try { $table->dropUnique('ods_unique_order_menu_date'); } catch (\Throwable $e) {}
             $table->unique(['order_id', 'menu_makanan_id', 'delivery_date'], 'ods_unique_order_menu_date');
         });
     }

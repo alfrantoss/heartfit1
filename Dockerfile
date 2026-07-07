@@ -42,9 +42,10 @@ RUN apt-get update && apt-get install -y \
         intl \
     && rm -rf /var/lib/apt/lists/*
 
-# Enable Apache modules (dan matikan MPM lain yang bentrok)
-RUN a2dismod mpm_event mpm_worker || true \
-    && a2enmod mpm_prefork rewrite headers
+# Disable conflicting MPMs, enable prefork (required for mod_php)
+RUN a2dismod mpm_event  2>/dev/null || true
+RUN a2dismod mpm_worker 2>/dev/null || true
+RUN a2enmod mpm_prefork rewrite headers
 
 # Change Apache port from 80 to 8080 (Railway default)
 RUN sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf \
