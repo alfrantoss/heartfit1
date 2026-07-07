@@ -30,5 +30,10 @@ rm -f /etc/apache2/mods-enabled/mpm_*.conf
 ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load
 ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf
 
+PORT=${PORT:-8080}
+echo "==> Configuring Apache to listen on port $PORT..."
+sed -i "s/Listen .*/Listen $PORT/" /etc/apache2/ports.conf
+sed -i "s/:.*>/:$PORT>/" /etc/apache2/sites-available/000-default.conf
+
 echo "==> Starting Apache..."
 exec apache2-foreground
