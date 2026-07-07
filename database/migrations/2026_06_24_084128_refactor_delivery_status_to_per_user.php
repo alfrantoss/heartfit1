@@ -14,26 +14,46 @@ return new class extends Migration
         // Truncate first to avoid constraint violations during refactor
         \Illuminate\Support\Facades\DB::table('order_delivery_statuses')->truncate();
 
+        // Drop foreign key safely - MUST be in its own Schema::table() block
+        // because Laravel executes SQL at end of callback, not inside it
+        try {
+            Schema::table('order_delivery_statuses', function (Blueprint $table) {
+                $table->dropForeign(['menu_makanan_id']);
+            });
+        } catch (\Throwable $e) { /* Doesn't exist on fresh DB, skip */ }
+
+        // Drop unique index safely
+        try {
+            Schema::table('order_delivery_statuses', function (Blueprint $table) {
+                $table->dropUnique('ods_unique_pkg_menu_date');
+            });
+        } catch (\Throwable $e) { /* Doesn't exist on fresh DB, skip */ }
+
         Schema::table('order_delivery_statuses', function (Blueprint $table) {
-            // Drop foreign key safely (might not exist on fresh DB)
-            try { $table->dropForeign(['menu_makanan_id']); } catch (\Throwable $e) {}
-            try { $table->dropUnique('ods_unique_pkg_menu_date'); } catch (\Throwable $e) {}
-            
             // Re-add the foreign key
             $table->foreign('menu_makanan_id')->references('id')->on('menu_makanans')->cascadeOnDelete();
 
             if (Schema::hasColumn('order_delivery_statuses', 'meal_package_id')) {
                 $table->dropConstrainedForeignId('meal_package_id');
             }
-            
+
             if (!Schema::hasColumn('order_delivery_statuses', 'order_id')) {
                 $table->foreignId('order_id')->after('id')
                       ->constrained('orders')->cascadeOnDelete();
             }
-                  
-            try { $table->dropUnique('ods_unique_order_menu_date'); } catch (\Throwable $e) {}
+        });
+
+        // Add unique index (drop first to avoid duplicate if re-running)
+        try {
+            Schema::table('order_delivery_statuses', function (Blueprint $table) {
+                $table->dropUnique('ods_unique_order_menu_date');
+            });
+        } catch (\Throwable $e) {}
+
+        Schema::table('order_delivery_statuses', function (Blueprint $table) {
             $table->unique(['order_id', 'menu_makanan_id', 'delivery_date'], 'ods_unique_order_menu_date');
         });
+
     }
 
     /**
