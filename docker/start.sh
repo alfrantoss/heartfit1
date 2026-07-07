@@ -24,5 +24,11 @@ php artisan storage:link --force || echo "[WARN] storage:link failed"
 echo "==> Running migrations..."
 php artisan migrate --force || echo "[WARN] migrate failed"
 
+echo "==> Forcing Apache MPM prefork..."
+rm -f /etc/apache2/mods-enabled/mpm_*.load
+rm -f /etc/apache2/mods-enabled/mpm_*.conf
+ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load
+ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf
+
 echo "==> Starting Apache..."
 exec apache2-foreground
