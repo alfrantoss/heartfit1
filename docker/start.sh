@@ -31,8 +31,18 @@ ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mp
 ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf
 
 # Apache is configured to port 8080 in Dockerfile
-# Railway routes traffic to 8080 because of EXPOSE 8080
-echo "==> Keeping Apache on port 8080..."
+# Railway Healthcheck hits 8080 because of EXPOSE 8080
+# BUT Railway Edge Proxy routes external traffic to $PORT
+# Solution: Listen on BOTH!
+if [ -n "$PORT" ] && [ "$PORT" != "8080" ]; then
+    echo "==> Configuring Apache to also listen on Railway PORT ($PORT)..."
+    echo "Listen $PORT" >> /etc/apache2/ports.conf
+    cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/001-railway.conf
+    sed -i "s/:8080>/:$PORT>/g" /etc/apache2/sites-available/001-railway.conf
+    a2ensite 001-railway.conf
+else
+    echo "==> Keeping Apache on port 8080..."
+fi
 
 echo "==> Starting Apache..."
 exec apache2-foreground
