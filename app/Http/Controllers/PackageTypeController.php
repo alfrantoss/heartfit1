@@ -33,7 +33,7 @@ class PackageTypeController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'packageType' => 'required|string|max:50',
+            'packageType' => 'required|string|max:50|unique:package_types,packageType',
             'is_personal' => 'nullable|boolean',
         ]);
 
@@ -63,7 +63,7 @@ class PackageTypeController extends Controller
     public function update(Request $request, PackageType $packageType)
     {
         $data = $request->validate([
-            'packageType' => 'required|string|max:50',
+            'packageType' => 'required|string|max:50|unique:package_types,packageType,' . $packageType->id,
             'is_personal' => 'nullable|boolean',
         ]);
 
