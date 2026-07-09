@@ -476,6 +476,20 @@
             `);
             printWindow.document.close();
         });
+
+        // Hide report modal after submit to prevent the screen from staying frozen when new tab opens
+        var reportForm = document.getElementById('reportForm');
+        if (reportForm) {
+            reportForm.addEventListener('submit', function() {
+                var myModalEl = document.getElementById('reportModal');
+                if (myModalEl) {
+                    var modal = bootstrap.Modal.getInstance(myModalEl);
+                    if (modal) {
+                        modal.hide();
+                    }
+                }
+            });
+        }
     });
     </script>
     @endpush
