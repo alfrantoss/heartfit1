@@ -144,7 +144,6 @@ class OrderController extends Controller
     public function create()
     {
         $packages = MealPackages::with('packageType')
-            ->where('batch', 'I')
             ->orderBy('created_at', 'desc')
             ->get();
 
