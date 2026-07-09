@@ -3,7 +3,7 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Models\packageType;
+use App\Models\PackageType;
 use Illuminate\Auth\Access\Response;
 
 class PackageTypePolicy

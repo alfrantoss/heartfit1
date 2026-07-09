@@ -3,7 +3,7 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Models\mealPackages;
+use App\Models\MealPackages;
 use Illuminate\Auth\Access\Response;
 
 class MealPackagesPolicy

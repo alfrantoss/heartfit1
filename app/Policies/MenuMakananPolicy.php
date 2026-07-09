@@ -3,7 +3,7 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Models\menuMakanan;
+use App\Models\MenuMakanan;
 use Illuminate\Auth\Access\Response;
 
 class MenuMakananPolicy

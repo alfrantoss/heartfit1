@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\menuMakanan;
+use App\Models\MenuMakanan;
 use Illuminate\Support\Arr;
 use App\Http\Requests\UpdatemenuMakananRequest;
 use Illuminate\Http\Request;

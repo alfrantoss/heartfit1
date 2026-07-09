@@ -27,6 +27,12 @@ php artisan migrate --force || echo "[WARN] migrate failed"
 echo "==> Running seeders..."
 php artisan db:seed --force || echo "[WARN] db:seed failed"
 
+echo "==> Fixing storage permissions (again) after artisan commands..."
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+touch /var/www/html/.env
+chown www-data:www-data /var/www/html/.env
+
 echo "==> Forcing Apache MPM prefork..."
 rm -f /etc/apache2/mods-enabled/mpm_*.load
 rm -f /etc/apache2/mods-enabled/mpm_*.conf
