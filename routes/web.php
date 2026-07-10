@@ -21,6 +21,46 @@ use App\Http\Controllers\SettingController;
 
 Route::get('/', [LandingPageController::class, 'index'])->name('welcome');
 
+// ── DEBUG ROUTE (hapus setelah masalah terselesaikan) ──
+Route::get('/debug-midtrans', function () {
+    try {
+        \Midtrans\Config::$serverKey    = config('services.midtrans.server_key');
+        \Midtrans\Config::$isProduction = (bool) config('services.midtrans.is_production', false);
+        \Midtrans\Config::$isSanitized  = true;
+        \Midtrans\Config::$is3ds        = true;
+
+        $params = [
+            'transaction_details' => [
+                'order_id'     => 'debug-test-' . time(),
+                'gross_amount' => 10000,
+            ],
+            'customer_details' => [
+                'first_name' => 'Test',
+                'email'      => 'test@example.com',
+            ],
+        ];
+
+        $token = \Midtrans\Snap::getSnapToken($params);
+
+        return response()->json([
+            'status'       => 'OK',
+            'snap_token'   => $token,
+            'server_key'   => substr(config('services.midtrans.server_key'), 0, 15) . '...',
+            'client_key'   => substr(config('services.midtrans.client_key'), 0, 15) . '...',
+            'is_production'=> config('services.midtrans.is_production'),
+            'app_url'      => config('app.url'),
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status'       => 'ERROR',
+            'message'      => $e->getMessage(),
+            'class'        => get_class($e),
+            'server_key_set' => !empty(config('services.midtrans.server_key')),
+            'client_key_set' => !empty(config('services.midtrans.client_key')),
+        ], 500);
+    }
+});
+
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->name('login.post');
