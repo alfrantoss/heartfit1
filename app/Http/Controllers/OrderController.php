@@ -496,8 +496,9 @@ class OrderController extends Controller
         // Tentukan apakah ini retry (untuk expiry time)
         $isRetry = $order->status === 'EXPIRED';
 
-        // Set expiry time: 5 menit untuk retry, 1 menit untuk pembayaran baru
-        $expiryMinutes = $isRetry ? 5 : 1;
+        // Set expiry time: 60 menit untuk retry, 24 jam untuk pembayaran baru
+        // Midtrans merekomendasikan minimal 15 menit; VA biasanya butuh lebih lama
+        $expiryMinutes = $isRetry ? 60 : 1440;
 
         // SELALU buat transaksi baru untuk menghindari timer Midtrans yang lama
         $attempt = $order->paymentTransactions()->count() + 1;
@@ -511,23 +512,25 @@ class OrderController extends Controller
         ]);
         
         // Generate token baru
+        // CATATAN: custom_field1/2/3 harus di level ROOT params, bukan di dalam transaction_details
+        // transaction_details hanya boleh berisi order_id dan gross_amount
         $params = [
             'transaction_details' => [
-                'order_id'       => $midtransOrderId,
-                'gross_amount'   => $gross,
-
-                // taruh ringkasan tahap 3 di custom_field*
-                'custom_field1'  => $cf1, // paket | kategori | batch
-                'custom_field2'  => $cf2, // periode | durasi | tanggal layanan (ringkas)
-                'custom_field3'  => $cf3, // menu unik (ringkas)
+                'order_id'     => $midtransOrderId,
+                'gross_amount' => $gross,
             ],
+
+            // custom_field di level root — valid di Midtrans Snap API
+            'custom_field1' => $cf1,
+            'custom_field2' => $cf2,
+            'custom_field3' => $cf3,
 
             'item_details' => [
                 [
                     'id'       => (string) $order->package_key,
                     'price'    => $gross,
                     'quantity' => 1,
-                    'name'     => mb_substr($order->package_label, 0, 50), // aman ≤ 50
+                    'name'     => mb_substr($order->package_label, 0, 50),
                     'category' => mb_substr($order->package_category, 0, 50),
                 ],
             ],
@@ -552,6 +555,9 @@ class OrderController extends Controller
             'callbacks' => [
                 'finish' => route('orders.finish', $order),
             ],
+
+            // expiry: minimum 15 menit agar user punya waktu cukup untuk membayar
+            // Midtrans merekomendasikan minimal 15 menit untuk VA/QRIS
             'expiry' => [
                 'unit'     => 'minutes',
                 'duration' => $expiryMinutes,

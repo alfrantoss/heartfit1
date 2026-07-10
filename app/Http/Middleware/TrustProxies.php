@@ -7,7 +7,14 @@ use Illuminate\Http\Request;
 
 class TrustProxies extends Middleware
 {
-    protected $proxies;
+    /**
+     * Trust all proxies — required for Railway, Heroku, and other
+     * platforms that sit behind a reverse proxy/load balancer.
+     * Without this, Laravel cannot detect HTTPS from X-Forwarded-Proto,
+     * causing session cookies to be marked secure=true but sent over
+     * what Laravel thinks is HTTP → CSRF 419 errors.
+     */
+    protected $proxies = '*';
 
     protected $headers = Request::HEADER_X_FORWARDED_FOR
         | Request::HEADER_X_FORWARDED_HOST

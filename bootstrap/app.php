@@ -15,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust all proxies — wajib untuk Railway/Heroku/platform reverse proxy
+        // agar HTTPS terdeteksi dengan benar dan session cookie bisa berjalan
+        $middleware->trustProxies(at: '*');
+
         // Alias route middleware (ganti Kernel::routeMiddleware)
         $middleware->alias([
             // Pakai middleware bawaan Laravel:

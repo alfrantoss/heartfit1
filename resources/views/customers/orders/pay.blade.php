@@ -228,7 +228,7 @@
         const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
         
         // Timer countdown configuration
-        const EXPIRY_MINUTES = {{ $isRetry ? 5 : 1 }}; // 5 menit untuk retry, 1 menit untuk baru
+        const EXPIRY_MINUTES = {{ $isRetry ? 60 : 1440 }};
         let countdownInterval;
         let timeRemaining = EXPIRY_MINUTES * 60; // dalam detik
 
