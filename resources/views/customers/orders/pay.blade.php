@@ -2,6 +2,24 @@
 @section('title', 'Bayar Pesanan')
 
 @section('content')
+    {{-- Error dari server (misal Midtrans gagal) --}}
+    @if($errors->any())
+    <div class="container py-3">
+        <div class="alert alert-danger border-0 shadow-sm">
+            <div class="d-flex align-items-start gap-2">
+                <i class="bx bx-error-circle fs-5 mt-1"></i>
+                <div>
+                    <strong>Terjadi kesalahan:</strong>
+                    <ul class="mb-0 mt-1 ps-3">
+                        @foreach($errors->all() as $err)
+                            <li style="font-size:13px;">{{ $err }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
     {{-- Notifikasi Pembayaran --}}
     @if(isset($isRetry) && $isRetry)
         @if($order->status === 'EXPIRED')

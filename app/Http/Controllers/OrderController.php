@@ -439,6 +439,28 @@ class OrderController extends Controller
 
     public function pay(Order $order, MidtransService $svc)
     {
+        try {
+            return $this->_doPay($order, $svc);
+        } catch (\Exception $e) {
+            Log::error('[Payment] FATAL ERROR in pay()', [
+                'order_id'  => $order->id,
+                'message'   => $e->getMessage(),
+                'class'     => get_class($e),
+                'file'      => $e->getFile(),
+                'line'      => $e->getLine(),
+                'trace'     => $e->getTraceAsString(),
+            ]);
+
+            // Tampilkan pesan error yang berguna ke user (bukan halaman 500 kosong)
+            return back()->withErrors([
+                'payment' => 'Gagal memproses pembayaran: ' . $e->getMessage()
+                           . ' (silakan hubungi admin jika masalah berlanjut)',
+            ]);
+        }
+    }
+
+    private function _doPay(Order $order, MidtransService $svc)
+    {
         // Cek apakah ada transaksi pending yang masih bisa digunakan
         $existingTransaction = $order->paymentTransactions()
             ->where('transaction_status', 'pending')
@@ -588,9 +610,9 @@ class OrderController extends Controller
             'snapToken' => $token,
             'attempt'   => $attempt,
             'clientKey' => config('services.midtrans.client_key'),
-            'isRetry'   => $isRetry, // tambahkan flag untuk view
+            'isRetry'   => $isRetry,
         ]);
-    }
+    } // end _doPay
 
 
     /** Halaman selesai (UX). Cek status real-time dari Midtrans */
