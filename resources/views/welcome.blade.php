@@ -545,22 +545,20 @@
                 <div class="col-lg-6">
                     <h2 class="fw-bold text-primary reveal">Tentang HeartFit</h2>
                     <p class="text-secondary mt-3 reveal reveal-delay-1">
-                        HeartFit bukan sekadar aplikasi kebugaran, tapi juga partner Anda untuk menjaga pola makan.
-                        Kami menyediakan rekomendasi resep sehat, panduan nutrisi, serta reminder untuk pola hidup
-                        seimbang.
+                        HeartFit adalah layanan catering sehat dari Departemen Instalasi Gizi Kementerian Kesehatan RSJPD Harapan Kita yang menghadirkan menu bergizi, seimbang, dan berkualitas. Setiap hidangan disusun berdasarkan prinsip gizi yang tepat serta diolah secara higienis untuk mendukung pola hidup sehat dan membantu menjaga kesehatan, khususnya kesehatan jantung.
                     </p>
                     <ul class="list-unstyled mt-3">
                         <li class="d-flex align-items-start mb-3 reveal reveal-delay-1">
                             <i class="bi bi-check2-circle text-primary me-3 mt-1"></i>
-                            <span>Resep mudah & bergizi seimbang</span>
+                            <span>Menu bergizi dengan kualitas terjamin</span>
                         </li>
                         <li class="d-flex align-items-start mb-3 reveal reveal-delay-2">
                             <i class="bi bi-check2-circle text-primary me-3 mt-1"></i>
-                            <span>Pencatatan kalori otomatis</span>
+                            <span>Disusun oleh tenaga gizi profesional</span>
                         </li>
                         <li class="d-flex align-items-start reveal reveal-delay-3">
                             <i class="bi bi-check2-circle text-primary me-3 mt-1"></i>
-                            <span>Rekomendasi menu sesuai kebutuhan</span>
+                            <span>Mendukung pola makan sehat dan seimbang</span>
                         </li>
                     </ul>
                 </div>
